@@ -149,38 +149,5 @@ public class UserHealthProfileController {
         return ResultUtils.success(exists);
     }
 
-    /**
-     * 获取活动水平选项
-     *
-     * @return 活动水平选项
-     */
-    @GetMapping("/activity-levels")
-    @ApiOperation(value = "获取活动水平选项")
-    public BaseResponse<Object> getActivityLevels() {
-        // 构建活动水平选项
-        Object[] activityLevels = {
-            new Object() {
-                public final int value = 1;
-                public final String label = "久坐";
-                public final String description = "很少运动，主要是坐着工作";
-            },
-            new Object() {
-                public final int value = 2;
-                public final String label = "轻度活动";
-                public final String description = "每周1-3次轻度运动";
-            },
-            new Object() {
-                public final int value = 3;
-                public final String label = "中度活动";
-                public final String description = "每周3-5次中等强度运动";
-            },
-            new Object() {
-                public final int value = 4;
-                public final String label = "重度活动";
-                public final String description = "每周6-7次高强度运动";
-            }
-        };
-        
-        return ResultUtils.success(activityLevels);
-    }
+
 }

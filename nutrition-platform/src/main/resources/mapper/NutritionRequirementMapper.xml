@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zcw.np.mapper.NutritionRequirementMapper">
+
+    <resultMap id="BaseResultMap" type="com.zcw.np.model.entity.NutritionRequirement">
+            <id property="requirementId" column="requirement_id" jdbcType="BIGINT"/>
+            <result property="userId" column="user_id" jdbcType="BIGINT"/>
+            <result property="assessmentDate" column="assessment_date" jdbcType="DATE"/>
+            <result property="dailyCalories" column="daily_calories" jdbcType="DECIMAL"/>
+            <result property="protein" column="protein" jdbcType="DECIMAL"/>
+            <result property="carbohydrate" column="carbohydrate" jdbcType="DECIMAL"/>
+            <result property="fat" column="fat" jdbcType="DECIMAL"/>
+            <result property="fiber" column="fiber" jdbcType="DECIMAL"/>
+            <result property="vitaminA" column="vitamin_a" jdbcType="DECIMAL"/>
+            <result property="vitaminC" column="vitamin_c" jdbcType="DECIMAL"/>
+            <result property="calcium" column="calcium" jdbcType="DECIMAL"/>
+            <result property="iron" column="iron" jdbcType="DECIMAL"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        requirement_id,user_id,assessment_date,
+        daily_calories,protein,carbohydrate,
+        fat,fiber,vitamin_a,
+        vitamin_c,calcium,iron,
+        create_time
+    </sql>
+</mapper>
