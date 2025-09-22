@@ -6,7 +6,8 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import lombok.Data;
 
 /**
@@ -32,7 +33,7 @@ public class DietRecord implements Serializable {
      * 记录日期
      */
     @TableField(value = "record_date")
-    private Date recordDate;
+    private LocalDate recordDate;
 
     /**
      * 餐别：1-早餐，2-午餐，3-晚餐，4-加餐
@@ -80,13 +81,13 @@ public class DietRecord implements Serializable {
      * 创建时间
      */
     @TableField(value = "create_time")
-    private Date createTime;
+    private LocalDateTime createTime;
 
     /**
      * 更新时间
      */
     @TableField(value = "update_time")
-    private Date updateTime;
+    private LocalDateTime updateTime;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
