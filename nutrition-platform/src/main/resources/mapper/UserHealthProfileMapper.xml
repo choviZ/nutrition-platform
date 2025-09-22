@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zcw.springbootinit.mapper.UserHealthProfileMapper">
+
+    <resultMap id="BaseResultMap" type="com.zcw.springbootinit.model.entity.UserHealthProfile">
+            <id property="profileId" column="profile_id" jdbcType="BIGINT"/>
+            <result property="userId" column="user_id" jdbcType="BIGINT"/>
+            <result property="chronicDiseases" column="chronic_diseases" jdbcType="VARCHAR"/>
+            <result property="allergies" column="allergies" jdbcType="VARCHAR"/>
+            <result property="dietaryPreferences" column="dietary_preferences" jdbcType="VARCHAR"/>
+            <result property="forbiddenFoods" column="forbidden_foods" jdbcType="VARCHAR"/>
+            <result property="exerciseHabits" column="exercise_habits" jdbcType="VARCHAR"/>
+            <result property="activityLevel" column="activity_level" jdbcType="TINYINT"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        profile_id,user_id,chronic_diseases,
+        allergies,dietary_preferences,forbidden_foods,
+        exercise_habits,activity_level,create_time,
+        update_time
+    </sql>
+</mapper>
