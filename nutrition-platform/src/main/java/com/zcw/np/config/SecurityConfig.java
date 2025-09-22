@@ -1,6 +1,11 @@
 package com.zcw.np.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zcw.np.common.BaseResponse;
+import com.zcw.np.common.ErrorCode;
+import com.zcw.np.common.ResultUtils;
 import com.zcw.np.filter.JwtAuthenticationFilter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -9,9 +14,13 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 /**
  * Spring Security 配置
@@ -20,6 +29,7 @@ import javax.annotation.Resource;
  */
 @Configuration
 @EnableWebSecurity
+@Slf4j
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Resource
@@ -35,6 +45,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .and()
                 // 配置会话管理为无状态
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                // 配置异常处理
+                .exceptionHandling()
+                .accessDeniedHandler(accessDeniedHandler())
+                .authenticationEntryPoint(authenticationEntryPoint())
                 .and()
                 // 配置授权规则
                 .authorizeRequests()
@@ -54,5 +69,42 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * 访问拒绝处理器
+     */
+    @Bean
+    public AccessDeniedHandler accessDeniedHandler() {
+        return (request, response, accessDeniedException) -> {
+            log.warn("访问被拒绝: {}", accessDeniedException.getMessage());
+            writeErrorResponse(response, ErrorCode.NO_AUTH_ERROR, "权限不足，无法访问该资源");
+        };
+    }
+
+    /**
+     * 认证入口点
+     */
+    @Bean
+    public AuthenticationEntryPoint authenticationEntryPoint() {
+        return (request, response, authException) -> {
+            log.warn("认证失败: {}", authException.getMessage());
+            writeErrorResponse(response, ErrorCode.NOT_LOGIN_ERROR, "请先登录");
+        };
+    }
+
+    /**
+     * 写入错误响应
+     */
+    private void writeErrorResponse(HttpServletResponse response, ErrorCode errorCode, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_OK);
+        response.setContentType("application/json;charset=UTF-8");
+        
+        BaseResponse<Object> errorResponse = ResultUtils.error(errorCode, message);
+        ObjectMapper objectMapper = new ObjectMapper();
+        String jsonResponse = objectMapper.writeValueAsString(errorResponse);
+        
+        response.getWriter().write(jsonResponse);
+        response.getWriter().flush();
     }
 }

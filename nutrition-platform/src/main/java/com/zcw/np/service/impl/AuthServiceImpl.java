@@ -68,8 +68,8 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(ErrorCode.FORBIDDEN_ERROR, "用户已被删除");
         }
 
-        // 生成JWT Token
-        String token = jwtUtils.generateToken(user.getUserId(), user.getUsername());
+        // 生成JWT Token（包含用户角色）
+        String token = jwtUtils.generateToken(user.getUserId(), user.getUsername(), user.getUserRole());
 
         // 构建登录响应
         return LoginResponse.builder()
@@ -133,8 +133,7 @@ public class AuthServiceImpl implements AuthService {
         user.setPassword(passwordEncoder.encode(password));
         user.setEmail(registerRequest.getEmail());
         user.setPhone(registerRequest.getPhone());
-        user.setRealName(StringUtils.hasText(registerRequest.getNickname()) ? 
-                registerRequest.getNickname() : username);
+        user.setRealName(username); // 默认使用用户名作为真实姓名
         user.setUserRole("user"); // 默认角色为普通用户
 
         boolean result = userService.save(user);
@@ -182,17 +181,8 @@ public class AuthServiceImpl implements AuthService {
         }
 
         try {
-            // 验证旧token
-            if (!jwtUtils.validateToken(token)) {
-                throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "Token无效");
-            }
-
-            // 从旧token中获取用户信息
-            String username = jwtUtils.getUsernameFromToken(token);
-            Long userId = jwtUtils.getUserIdFromToken(token);
-
-            // 生成新token
-            return jwtUtils.generateToken(userId, username);
+            // 使用JwtUtils的refreshToken方法
+            return jwtUtils.refreshToken(token);
         } catch (Exception e) {
             log.error("刷新token失败: {}", e.getMessage());
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "刷新token失败");

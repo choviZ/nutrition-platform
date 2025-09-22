@@ -1,18 +1,19 @@
 package com.zcw.np.utils;
 
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.Keys;
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.jwt.JWT;
+import cn.hutool.jwt.JWTPayload;
+import cn.hutool.jwt.JWTUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * JWT工具类
+ * JWT工具类 - 基于Hutool实现
  * 
  * @author zcw
  */
@@ -37,33 +38,38 @@ public class JwtUtils {
      *
      * @param userId 用户ID
      * @param username 用户名
+     * @param userRole 用户角色
      * @return JWT Token
      */
-    public String generateToken(Long userId, String username) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId);
-        claims.put("username", username);
-        return createToken(claims, username);
+    public String generateToken(Long userId, String username, String userRole) {
+        Map<String, Object> payload = new HashMap<>();
+        
+        // 设置标准声明
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + expiration);
+        
+        payload.put(JWTPayload.SUBJECT, username);
+        payload.put(JWTPayload.ISSUED_AT, now);
+        payload.put(JWTPayload.EXPIRES_AT, expiryDate);
+        payload.put(JWTPayload.NOT_BEFORE, now);
+        
+        // 设置自定义声明
+        payload.put("userId", userId);
+        payload.put("username", username);
+        payload.put("userRole", userRole);
+        
+        return JWTUtil.createToken(payload, secret.getBytes());
     }
 
     /**
-     * 创建Token
+     * 生成JWT Token（兼容旧版本）
      *
-     * @param claims 声明
-     * @param subject 主题
+     * @param userId 用户ID
+     * @param username 用户名
      * @return JWT Token
      */
-    private String createToken(Map<String, Object> claims, String subject) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + expiration);
-
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(subject)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(getSigningKey(), SignatureAlgorithm.HS512)
-                .compact();
+    public String generateToken(Long userId, String username) {
+        return generateToken(userId, username, "user");
     }
 
     /**
@@ -73,7 +79,13 @@ public class JwtUtils {
      * @return 用户名
      */
     public String getUsernameFromToken(String token) {
-        return getClaimFromToken(token, Claims::getSubject);
+        try {
+            JWT jwt = JWTUtil.parseToken(token);
+            return (String) jwt.getPayload(JWTPayload.SUBJECT);
+        } catch (Exception e) {
+            log.error("从Token中获取用户名失败: {}", e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -83,8 +95,33 @@ public class JwtUtils {
      * @return 用户ID
      */
     public Long getUserIdFromToken(String token) {
-        Claims claims = getAllClaimsFromToken(token);
-        return claims.get("userId", Long.class);
+        try {
+            JWT jwt = JWTUtil.parseToken(token);
+            Object userIdObj = jwt.getPayload("userId");
+            if (userIdObj instanceof Number) {
+                return ((Number) userIdObj).longValue();
+            }
+            return null;
+        } catch (Exception e) {
+            log.error("从Token中获取用户ID失败: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 从Token中获取用户角色
+     *
+     * @param token JWT Token
+     * @return 用户角色
+     */
+    public String getUserRoleFromToken(String token) {
+        try {
+            JWT jwt = JWTUtil.parseToken(token);
+            return (String) jwt.getPayload("userRole");
+        } catch (Exception e) {
+            log.error("从Token中获取用户角色失败: {}", e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -94,34 +131,19 @@ public class JwtUtils {
      * @return 过期时间
      */
     public Date getExpirationDateFromToken(String token) {
-        return getClaimFromToken(token, Claims::getExpiration);
-    }
-
-    /**
-     * 从Token中获取指定声明
-     *
-     * @param token JWT Token
-     * @param claimsResolver 声明解析器
-     * @param <T> 返回类型
-     * @return 声明值
-     */
-    public <T> T getClaimFromToken(String token, ClaimsResolver<T> claimsResolver) {
-        final Claims claims = getAllClaimsFromToken(token);
-        return claimsResolver.resolve(claims);
-    }
-
-    /**
-     * 从Token中获取所有声明
-     *
-     * @param token JWT Token
-     * @return 所有声明
-     */
-    private Claims getAllClaimsFromToken(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        try {
+            JWT jwt = JWTUtil.parseToken(token);
+            Object expObj = jwt.getPayload(JWTPayload.EXPIRES_AT);
+            if (expObj instanceof Date) {
+                return (Date) expObj;
+            } else if (expObj instanceof Number) {
+                return new Date(((Number) expObj).longValue() * 1000);
+            }
+            return null;
+        } catch (Exception e) {
+            log.error("从Token中获取过期时间失败: {}", e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -131,8 +153,13 @@ public class JwtUtils {
      * @return 是否过期
      */
     public Boolean isTokenExpired(String token) {
-        final Date expiration = getExpirationDateFromToken(token);
-        return expiration.before(new Date());
+        try {
+            Date expiration = getExpirationDateFromToken(token);
+            return expiration != null && expiration.before(new Date());
+        } catch (Exception e) {
+            log.error("检查Token过期状态失败: {}", e.getMessage());
+            return true;
+        }
     }
 
     /**
@@ -144,8 +171,30 @@ public class JwtUtils {
      */
     public Boolean validateToken(String token, String username) {
         try {
-            final String tokenUsername = getUsernameFromToken(token);
-            return (tokenUsername.equals(username) && !isTokenExpired(token));
+            if (StrUtil.isBlank(token) || StrUtil.isBlank(username)) {
+                return false;
+            }
+            
+            // 验证签名
+            if (!JWTUtil.verify(token, secret.getBytes())) {
+                log.debug("Token签名验证失败");
+                return false;
+            }
+            
+            // 验证用户名
+            String tokenUsername = getUsernameFromToken(token);
+            if (!username.equals(tokenUsername)) {
+                log.debug("Token中的用户名不匹配");
+                return false;
+            }
+            
+            // 验证是否过期
+            if (isTokenExpired(token)) {
+                log.debug("Token已过期");
+                return false;
+            }
+            
+            return true;
         } catch (Exception e) {
             log.error("Token验证失败: {}", e.getMessage());
             return false;
@@ -160,34 +209,66 @@ public class JwtUtils {
      */
     public Boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder()
-                    .setSigningKey(getSigningKey())
-                    .build()
-                    .parseClaimsJws(token);
-            return !isTokenExpired(token);
-        } catch (JwtException | IllegalArgumentException e) {
+            if (StrUtil.isBlank(token)) {
+                log.debug("Token为空");
+                return false;
+            }
+            
+            log.debug("开始验证Token: {}", token.substring(0, Math.min(token.length(), 20)) + "...");
+            
+            // 验证签名
+            if (!JWTUtil.verify(token, secret.getBytes())) {
+                log.debug("Token签名验证失败");
+                return false;
+            }
+            
+            // 验证是否过期
+            boolean expired = isTokenExpired(token);
+            log.debug("Token解析成功，是否过期: {}", expired);
+            
+            return !expired;
+        } catch (Exception e) {
             log.error("Token验证失败: {}", e.getMessage());
             return false;
         }
     }
 
     /**
-     * 获取签名密钥
+     * 刷新Token
      *
-     * @return 签名密钥
+     * @param token 旧Token
+     * @return 新Token
      */
-    private SecretKey getSigningKey() {
-        byte[] keyBytes = secret.getBytes();
-        return Keys.hmacShaKeyFor(keyBytes);
+    public String refreshToken(String token) {
+        try {
+            if (!validateToken(token)) {
+                throw new RuntimeException("Token无效，无法刷新");
+            }
+            
+            String username = getUsernameFromToken(token);
+            Long userId = getUserIdFromToken(token);
+            String userRole = getUserRoleFromToken(token);
+            
+            return generateToken(userId, username, userRole);
+        } catch (Exception e) {
+            log.error("刷新Token失败: {}", e.getMessage());
+            throw new RuntimeException("刷新Token失败: " + e.getMessage());
+        }
     }
 
     /**
-     * 声明解析器接口
+     * 解析Token获取所有载荷信息
      *
-     * @param <T> 返回类型
+     * @param token JWT Token
+     * @return 载荷信息
      */
-    @FunctionalInterface
-    public interface ClaimsResolver<T> {
-        T resolve(Claims claims);
+    public Map<String, Object> parseToken(String token) {
+        try {
+            JWT jwt = JWTUtil.parseToken(token);
+            return jwt.getPayloads();
+        } catch (Exception e) {
+            log.error("解析Token失败: {}", e.getMessage());
+            return new HashMap<>();
+        }
     }
 }

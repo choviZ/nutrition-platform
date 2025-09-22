@@ -2,10 +2,12 @@ package com.zcw.np.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.zcw.np.annotation.AuthCheck;
 import com.zcw.np.common.BaseResponse;
 import com.zcw.np.common.DeleteRequest;
 import com.zcw.np.common.ErrorCode;
 import com.zcw.np.common.ResultUtils;
+import com.zcw.np.constant.UserConstant;
 import com.zcw.np.exception.BusinessException;
 import com.zcw.np.exception.ThrowUtils;
 import com.zcw.np.model.dto.user.UserAddRequest;
@@ -22,6 +24,10 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.validation.Valid;
 import java.time.LocalDateTime;
+import java.util.Map;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
  * 用户接口
@@ -48,6 +54,7 @@ public class UserController {
      * @return 新用户id
      */
     @PostMapping("/add")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Long> addUser(@RequestBody @Valid UserAddRequest userAddRequest) {
         if (userAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -106,9 +113,34 @@ public class UserController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         long id = deleteRequest.getId();
+        
         // 判断是否存在
         User oldUser = userService.getById(id);
         ThrowUtils.throwIf(oldUser == null, ErrorCode.NOT_FOUND_ERROR);
+        
+        // 获取当前登录用户信息
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || 
+            "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        
+        // 获取当前用户ID和角色
+        Long currentUserId = getCurrentUserId(authentication);
+        String currentUserRole = getCurrentUserRole(authentication);
+        
+        // 如果无法获取用户信息，说明token可能有问题，但用户认为自己已登录
+        if (currentUserId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "登录状态异常，请重新登录");
+        }
+        
+        // 权限验证：只有本人或管理员可以删除
+        boolean isAdmin = UserConstant.ADMIN_ROLE.equals(currentUserRole);
+        boolean isSelf = currentUserId.equals(id);
+        
+        if (!isAdmin && !isSelf) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "只有本人或管理员可以删除用户");
+        }
         
         // 逻辑删除
         boolean result = userService.removeById(deleteRequest.getId());
@@ -122,6 +154,7 @@ public class UserController {
      * @return 是否更新成功
      */
     @PostMapping("/update")
+    @AuthCheck(mustRole = UserConstant.DEFAULT_ROLE )
     public BaseResponse<Boolean> updateUser(@RequestBody @Valid UserUpdateRequest userUpdateRequest) {
         if (userUpdateRequest == null || userUpdateRequest.getUserId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -133,6 +166,17 @@ public class UserController {
         // 参数校验
         userService.validUser(user, false);
         long id = userUpdateRequest.getUserId();
+        // 获取当前用户ID和角色
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long currentUserId = getCurrentUserId(authentication);
+        String currentUserRole = getCurrentUserRole(authentication);
+        // 权限验证：只有本人或管理员可以删除
+        boolean isAdmin = UserConstant.ADMIN_ROLE.equals(currentUserRole);
+        boolean isSelf = currentUserId.equals(id);
+
+        if (!isAdmin && !isSelf) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "只有本人或管理员可以删除用户");
+        }
         // 判断是否存在
         User oldUser = userService.getById(id);
         ThrowUtils.throwIf(oldUser == null, ErrorCode.NOT_FOUND_ERROR);
@@ -206,4 +250,30 @@ public class UserController {
     }
 
     // endregion
+
+    /**
+     * 获取当前用户ID
+     */
+    private Long getCurrentUserId(Authentication authentication) {
+        Object details = authentication.getDetails();
+        if (details instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> detailsMap = (Map<String, Object>) details;
+            return (Long) detailsMap.get("userId");
+        }
+        return null;
+    }
+
+    /**
+     * 获取当前用户角色
+     */
+    private String getCurrentUserRole(Authentication authentication) {
+        Object details = authentication.getDetails();
+        if (details instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> detailsMap = (Map<String, Object>) details;
+            return (String) detailsMap.get("userRole");
+        }
+        return null;
+    }
 }

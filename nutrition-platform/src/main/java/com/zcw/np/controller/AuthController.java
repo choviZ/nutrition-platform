@@ -82,11 +82,15 @@ public class AuthController {
     @GetMapping("/validate")
     public BaseResponse<Boolean> validateToken(HttpServletRequest request) {
         String token = getTokenFromRequest(request);
+        log.info("收到Token验证请求，Token: {}", token != null ? token.substring(0, Math.min(token.length(), 20)) + "..." : "null");
+        
         if (!StringUtils.hasText(token)) {
+            log.warn("Token为空，返回false");
             return ResultUtils.success(false);
         }
         
         Boolean isValid = authService.validateToken(token);
+        log.info("Token验证结果: {}", isValid);
         return ResultUtils.success(isValid);
     }
 
@@ -110,9 +114,22 @@ public class AuthController {
      */
     private String getTokenFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
+        log.info("Authorization头内容: [{}]", bearerToken);
+        
+        if (StringUtils.hasText(bearerToken)) {
+            String token;
+            if (bearerToken.startsWith("Bearer ")) {
+                // 标准Bearer格式
+                token = bearerToken.substring(7);
+            } else {
+                // 直接是token（兼容格式）
+                token = bearerToken;
+            }
+            log.info("提取的Token: [{}]", token);
+            return token;
         }
+        
+        log.warn("Authorization头为空");
         return null;
     }
 }
