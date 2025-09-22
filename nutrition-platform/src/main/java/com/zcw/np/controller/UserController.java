@@ -24,10 +24,8 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.validation.Valid;
 import java.time.LocalDateTime;
-import java.util.Map;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import com.zcw.np.utils.UserContextUtils;
 
 /**
  * 用户接口
@@ -118,29 +116,8 @@ public class UserController {
         User oldUser = userService.getById(id);
         ThrowUtils.throwIf(oldUser == null, ErrorCode.NOT_FOUND_ERROR);
         
-        // 获取当前登录用户信息
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated() || 
-            "anonymousUser".equals(authentication.getPrincipal())) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
-        }
-        
-        // 获取当前用户ID和角色
-        Long currentUserId = getCurrentUserId(authentication);
-        String currentUserRole = getCurrentUserRole(authentication);
-        
-        // 如果无法获取用户信息，说明token可能有问题，但用户认为自己已登录
-        if (currentUserId == null) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "登录状态异常，请重新登录");
-        }
-        
         // 权限验证：只有本人或管理员可以删除
-        boolean isAdmin = UserConstant.ADMIN_ROLE.equals(currentUserRole);
-        boolean isSelf = currentUserId.equals(id);
-        
-        if (!isAdmin && !isSelf) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "只有本人或管理员可以删除用户");
-        }
+        UserContextUtils.requireSelfOrAdmin(id);
         
         // 逻辑删除
         boolean result = userService.removeById(deleteRequest.getId());
@@ -166,17 +143,8 @@ public class UserController {
         // 参数校验
         userService.validUser(user, false);
         long id = userUpdateRequest.getUserId();
-        // 获取当前用户ID和角色
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Long currentUserId = getCurrentUserId(authentication);
-        String currentUserRole = getCurrentUserRole(authentication);
-        // 权限验证：只有本人或管理员可以删除
-        boolean isAdmin = UserConstant.ADMIN_ROLE.equals(currentUserRole);
-        boolean isSelf = currentUserId.equals(id);
-
-        if (!isAdmin && !isSelf) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "只有本人或管理员可以删除用户");
-        }
+        // 权限验证：只有本人或管理员可以更新
+        UserContextUtils.requireSelfOrAdmin(id);
         // 判断是否存在
         User oldUser = userService.getById(id);
         ThrowUtils.throwIf(oldUser == null, ErrorCode.NOT_FOUND_ERROR);
@@ -251,29 +219,5 @@ public class UserController {
 
     // endregion
 
-    /**
-     * 获取当前用户ID
-     */
-    private Long getCurrentUserId(Authentication authentication) {
-        Object details = authentication.getDetails();
-        if (details instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> detailsMap = (Map<String, Object>) details;
-            return (Long) detailsMap.get("userId");
-        }
-        return null;
-    }
 
-    /**
-     * 获取当前用户角色
-     */
-    private String getCurrentUserRole(Authentication authentication) {
-        Object details = authentication.getDetails();
-        if (details instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> detailsMap = (Map<String, Object>) details;
-            return (String) detailsMap.get("userRole");
-        }
-        return null;
-    }
 }
