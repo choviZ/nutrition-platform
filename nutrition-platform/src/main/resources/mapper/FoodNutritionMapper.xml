@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zcw.np.mapper.FoodNutritionMapper">
+
+    <resultMap id="BaseResultMap" type="com.zcw.np.model.entity.FoodNutrition">
+            <id property="foodId" column="food_id" jdbcType="BIGINT"/>
+            <result property="foodName" column="food_name" jdbcType="VARCHAR"/>
+            <result property="foodCategory" column="food_category" jdbcType="VARCHAR"/>
+            <result property="caloriesPer100g" column="calories_per_100g" jdbcType="DECIMAL"/>
+            <result property="proteinPer100g" column="protein_per_100g" jdbcType="DECIMAL"/>
+            <result property="carbohydratePer100g" column="carbohydrate_per_100g" jdbcType="DECIMAL"/>
+            <result property="fatPer100g" column="fat_per_100g" jdbcType="DECIMAL"/>
+            <result property="fiberPer100g" column="fiber_per_100g" jdbcType="DECIMAL"/>
+            <result property="vitaminAPer100g" column="vitamin_a_per_100g" jdbcType="DECIMAL"/>
+            <result property="vitaminCPer100g" column="vitamin_c_per_100g" jdbcType="DECIMAL"/>
+            <result property="calciumPer100g" column="calcium_per_100g" jdbcType="DECIMAL"/>
+            <result property="ironPer100g" column="iron_per_100g" jdbcType="DECIMAL"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        food_id,food_name,food_category,
+        calories_per_100g,protein_per_100g,carbohydrate_per_100g,
+        fat_per_100g,fiber_per_100g,vitamin_a_per_100g,
+        vitamin_c_per_100g,calcium_per_100g,iron_per_100g,
+        create_time,update_time
+    </sql>
+</mapper>
