@@ -4,7 +4,7 @@ import { ElMessage } from 'element-plus'
 
 // 创建axios实例
 const service: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8101',
+  baseURL: import.meta.env.DEV ? '' : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8101'),
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json;charset=UTF-8'
@@ -36,7 +36,7 @@ service.interceptors.response.use(
     const { code, message, data } = response.data
 
     if (code === 200) {
-      return data
+      return response.data // 返回完整的响应对象，包含code、data、message
     } else {
       ElMessage.error(message || '请求失败')
       return Promise.reject(new Error(message || '请求失败'))
