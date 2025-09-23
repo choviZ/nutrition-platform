@@ -1,8 +1,8 @@
-import request from './request'
-import type { 
-  Food, 
+import request from '../request.ts'
+import type {
+  Food,
   FoodSearchRequest,
-  PageResponse 
+  PageResponse
 } from './types'
 
 // 食物相关API

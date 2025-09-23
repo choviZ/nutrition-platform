@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+import type { AxiosInstance, AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
 
 // 创建axios实例
@@ -13,7 +13,7 @@ const service: AxiosInstance = axios.create({
 
 // 请求拦截器
 service.interceptors.request.use(
-  (config: AxiosRequestConfig) => {
+  function(config){
     // 在发送请求之前做些什么
     // 可以在这里添加token
     const token = localStorage.getItem('token')
@@ -34,7 +34,7 @@ service.interceptors.response.use(
   (response: AxiosResponse) => {
     // 对响应数据做点什么
     const { code, message, data } = response.data
-    
+
     if (code === 200) {
       return data
     } else {
@@ -45,7 +45,7 @@ service.interceptors.response.use(
   (error) => {
     // 对响应错误做点什么
     console.error('响应错误:', error)
-    
+
     if (error.response) {
       const { status, data } = error.response
       switch (status) {
@@ -72,7 +72,7 @@ service.interceptors.response.use(
     } else {
       ElMessage.error('请求配置错误')
     }
-    
+
     return Promise.reject(error)
   }
 )

@@ -1,10 +1,10 @@
-import request from './request'
-import type { 
-  NutritionRecord, 
+import request from '../request.ts'
+import type {
+  NutritionRecord,
   NutritionRecordRequest,
   NutritionGoal,
   NutritionGoalRequest,
-  PageResponse 
+  PageResponse
 } from './types'
 
 // 营养记录相关API

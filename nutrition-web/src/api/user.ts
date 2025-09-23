@@ -1,10 +1,10 @@
-import request from './request'
-import type { 
-  LoginRequest, 
-  LoginResponse, 
-  RegisterRequest, 
+import request from '../request.ts'
+import type {
+  LoginRequest,
+  LoginResponse,
+  RegisterRequest,
   User,
-  ApiResponse 
+  ApiResponse
 } from './types'
 
 // 用户登录
