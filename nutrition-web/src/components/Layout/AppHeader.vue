@@ -39,6 +39,10 @@
           <el-icon><Setting /></el-icon>
           <span>个人设置</span>
         </el-menu-item>
+        <el-menu-item index="/user-management">
+          <el-icon><UserFilled /></el-icon>
+          <span>用户管理</span>
+        </el-menu-item>
       </el-menu>
     </div>
 
@@ -78,9 +82,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
 const route = useRoute()
@@ -88,11 +92,33 @@ const route = useRoute()
 // 当前激活的菜单项
 const activeIndex = computed(() => route.path)
 
-// 用户信息（占位数据）
+// 用户信息
 const userInfo = ref({
-  nickname: '张三',
+  nickname: '用户',
   avatar: '', // 空字符串会显示默认头像
-  email: 'zhangsan@example.com'
+  email: ''
+})
+
+// 初始化用户信息
+const initUserInfo = () => {
+  const storedUserInfo = localStorage.getItem('userInfo')
+  if (storedUserInfo) {
+    try {
+      const parsed = JSON.parse(storedUserInfo)
+      userInfo.value = {
+        nickname: parsed.username || '用户',
+        avatar: '',
+        email: parsed.email || ''
+      }
+    } catch (error) {
+      console.error('解析用户信息失败:', error)
+    }
+  }
+}
+
+// 组件挂载时初始化用户信息
+onMounted(() => {
+  initUserInfo()
 })
 
 // 处理菜单选择
@@ -110,11 +136,30 @@ const handleCommand = (command: string) => {
       router.push('/settings')
       break
     case 'logout':
-      ElMessage.success('退出登录成功')
-      // 这里可以添加实际的登出逻辑
-      localStorage.removeItem('token')
-      router.push('/login')
+      handleLogout()
       break
+  }
+}
+
+// 退出登录
+const handleLogout = async () => {
+  try {
+    await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    // 清除本地存储的用户信息和token
+    localStorage.removeItem('token')
+    localStorage.removeItem('userInfo')
+    
+    ElMessage.success('退出登录成功')
+    
+    // 跳转到登录页
+    router.push('/login')
+  } catch (error) {
+    // 用户取消退出
   }
 }
 </script>

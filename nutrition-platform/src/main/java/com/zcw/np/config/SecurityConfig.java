@@ -54,7 +54,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 // 配置授权规则
                 .authorizeRequests()
                 // 允许访问认证相关接口
-                .antMatchers("/auth/**").permitAll()
+                .antMatchers("/auth/**", "/api/auth/**").permitAll()
                 // 允许访问knife4j相关路径
                 .antMatchers("/doc.html", "/webjars/**", "/swagger-resources/**", "/v2/api-docs/**", "/v3/api-docs/**").permitAll()
                 // 允许访问静态资源

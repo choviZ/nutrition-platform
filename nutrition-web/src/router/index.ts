@@ -1,20 +1,36 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import Layout from '@/components/Layout/index.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    // 登录页面
+    {
+      path: '/login',
+      name: 'Login',
+      component: () => import('@/views/Login/index.vue'),
+      meta: {
+        title: '登录',
+        requiresAuth: false
+      }
+    },
+    // 主应用布局
     {
       path: '/',
       component: Layout,
       redirect: '/',
+      meta: {
+        requiresAuth: true
+      },
       children: [
         {
           path: '',
           name: 'Home',
           component: () => import('@/views/Home/index.vue'),
           meta: {
-            title: '首页'
+            title: '首页',
+            requiresAuth: true
           }
         },
         {
@@ -22,7 +38,8 @@ const router = createRouter({
           name: 'Nutrition',
           component: () => import('@/views/Nutrition/index.vue'),
           meta: {
-            title: '营养记录'
+            title: '营养记录',
+            requiresAuth: true
           }
         },
         {
@@ -30,7 +47,8 @@ const router = createRouter({
           name: 'Food',
           component: () => import('@/views/Food/index.vue'),
           meta: {
-            title: '食物库'
+            title: '食物库',
+            requiresAuth: true
           }
         },
         {
@@ -38,7 +56,8 @@ const router = createRouter({
           name: 'Analysis',
           component: () => import('@/views/Analysis/index.vue'),
           meta: {
-            title: '数据分析'
+            title: '数据分析',
+            requiresAuth: true
           }
         },
         {
@@ -46,7 +65,17 @@ const router = createRouter({
           name: 'Profile',
           component: () => import('@/views/Profile/index.vue'),
           meta: {
-            title: '个人设置'
+            title: '个人设置',
+            requiresAuth: true
+          }
+        },
+        {
+          path: '/user-management',
+          name: 'UserManagement',
+          component: () => import('@/views/UserManagement/index.vue'),
+          meta: {
+            title: '用户管理',
+            requiresAuth: true
           }
         }
       ]
@@ -57,11 +86,18 @@ const router = createRouter({
       name: 'NotFound',
       component: () => import('@/views/NotFound/index.vue'),
       meta: {
-        title: '页面未找到'
+        title: '页面未找到',
+        requiresAuth: false
       }
     }
   ],
 })
+
+// 检查用户是否已登录
+const isAuthenticated = (): boolean => {
+  const token = localStorage.getItem('token')
+  return !!token
+}
 
 // 路由守卫
 router.beforeEach((to, from, next) => {
@@ -71,7 +107,21 @@ router.beforeEach((to, from, next) => {
   } else {
     document.title = '营养平台'
   }
-  next()
+
+  // 检查路由是否需要认证
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  
+  if (requiresAuth && !isAuthenticated()) {
+    // 需要认证但未登录，跳转到登录页
+    ElMessage.warning('请先登录')
+    next('/login')
+  } else if (to.path === '/login' && isAuthenticated()) {
+    // 已登录用户访问登录页，跳转到首页
+    next('/')
+  } else {
+    // 正常访问
+    next()
+  }
 })
 
 export default router

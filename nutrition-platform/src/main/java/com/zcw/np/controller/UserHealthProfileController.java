@@ -25,7 +25,7 @@ import javax.validation.Valid;
  * @author zcw
  */
 @RestController
-@RequestMapping("/api/health-profile")
+@RequestMapping("/health-profile")
 @Slf4j
 @Api(tags = "用户健康档案管理")
 public class UserHealthProfileController {

@@ -220,7 +220,7 @@ const postData = async () => {
 
 ### 开发环境 (.env.development)
 ```
-VITE_API_BASE_URL=http://localhost:8080/api
+VITE_API_BASE_URL=http://localhost:8101/api
 VITE_APP_TITLE=营养平台
 VITE_APP_ENV=development
 ```

@@ -20,7 +20,7 @@ import java.util.Map;
  * @author zcw
  */
 @RestController
-@RequestMapping("/api/common")
+@RequestMapping("/common")
 @Slf4j
 @Api(tags = "公共选项管理")
 public class CommonOptionController {
