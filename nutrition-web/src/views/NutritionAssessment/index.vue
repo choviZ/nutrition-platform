@@ -3,7 +3,6 @@
     <div class="page-header">
       <h2>营养需求评估</h2>
       <p>输入您的基本信息，获取科学的营养建议</p>
-      {{assessmentResult}}
     </div>
     <el-card class="assessment-card">
       <template #header>
@@ -103,6 +102,19 @@
         </el-form-item>
       </el-form>
     </el-card>
+    <el-dialog v-model="resultDialogVisible" title="评估结果" width="500">
+      <div v-if="assessmentResult">
+        <p><strong>能量需求:</strong> {{ assessmentResult.energy }} kcal</p>
+        <p><strong>蛋白质需求:</strong> {{ assessmentResult.protein }} g</p>
+        <p><strong>脂肪需求:</strong> {{ assessmentResult.fat }} g</p>
+        <p><strong>碳水化合物需求:</strong> {{ assessmentResult.carbohydrates }} g</p>
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="resultDialogVisible = false">关闭</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -115,6 +127,7 @@ import {
 
 const assessmentFormRef = ref()
 const submitLoading = ref(false)
+const resultDialogVisible = ref(false)
 
 // 评估表单
 const assessmentForm = reactive<API.NutritionAssessmentRequest>({
@@ -153,6 +166,7 @@ const handleSubmit = async () => {
     if (response.data.code === 200) {
       ElMessage.success('营养需求评估成功')
       assessmentResult.value = response.data.data
+      resultDialogVisible.value = true
     } else {
       ElMessage.error(response.data.message || '评估失败')
     }
@@ -190,14 +204,6 @@ const handleSubmit = async () => {
 
 .assessment-card {
   margin-bottom: 40px;
-}
-
-.query-section {
-  margin-top: 40px;
-}
-
-.query-form {
-  margin-bottom: 20px;
 }
 
 .query-form .el-form-item {

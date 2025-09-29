@@ -86,6 +86,15 @@ const router = createRouter({
             title: '用户管理',
             requiresAuth: true
           }
+        },
+        {
+          path: '/food-management',
+          name: 'FoodManagement',
+          component: () => import('@/views/FoodManagement/index.vue'),
+          meta: {
+            title: '食物管理',
+            requiresAuth: true
+          }
         }
       ]
     },

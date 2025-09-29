@@ -47,6 +47,10 @@
           <el-icon><UserFilled /></el-icon>
           <span>用户管理</span>
         </el-menu-item>
+        <el-menu-item index="/food-management">
+          <el-icon><Food /></el-icon>
+          <span>食物管理</span>
+        </el-menu-item>
       </el-menu>
     </div>
 
