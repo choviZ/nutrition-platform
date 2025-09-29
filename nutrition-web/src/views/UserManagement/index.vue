@@ -354,9 +354,9 @@ const loadUserList = async () => {
     }
 
     const response = await listUserByPageUsingPost1(params)
-    if (response.code === 200 && response.data) {
+    if (response.data.code === 200 && response.data) {
       // 处理用户数据，添加描述性字段
-      const processedUsers = (response.data.records || []).map(user => ({
+      const processedUsers = (response.data.data?.records || []).map(user => ({
         ...user,
         genderDesc: user.gender === 1 ? '男' : user.gender === 0 ? '女' : '未知',
         statusDesc: user.status === 1 ? '启用' : '禁用',
@@ -364,9 +364,9 @@ const loadUserList = async () => {
       }))
       userList.value = processedUsers
       // 确保 total 是数字类型
-      pagination.total = typeof response.data.total === 'string' ? parseInt(response.data.total) : (response.data.total || 0)
+      pagination.total = typeof response.data.data?.total === 'string' ? parseInt(response.data.data?.total) : (response.data.data?.total || 0)
     } else {
-      ElMessage.error(response.message || '获取用户列表失败')
+      ElMessage.error(response.data.message || '获取用户列表失败')
     }
   } catch (error) {
     ElMessage.error('获取用户列表失败')
@@ -441,7 +441,7 @@ const handleDelete = async (row: API.UserVO) => {
     )
 
     const response = await deleteUserUsingPost1({ id: row.userId })
-    if (response.code === 200) {
+    if (response.data.code === 200) {
       ElMessage.success('删除成功')
       loadUserList()
     } else {
@@ -469,7 +469,7 @@ const handleSubmit = async () => {
       response = await addUserUsingPost1(userForm as API.UserAddRequest)
     }
 
-    if (response.code === 200) {
+    if (response.data.code === 200) {
       ElMessage.success(isEdit.value ? '更新成功' : '添加成功')
       dialogVisible.value = false
       loadUserList()

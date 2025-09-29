@@ -102,7 +102,7 @@ const handleLogin = async () => {
   try {
     // 验证表单
     await loginFormRef.value.validate()
-    
+
     loading.value = true
 
     // 调用登录API
@@ -111,23 +111,21 @@ const handleLogin = async () => {
       password: loginForm.password
     })
 
-    if (response && response.code === 200 && response.data) {
+    if (response && response.data.code === 200 && response.data.data) {
       // 保存token
-      localStorage.setItem('token', response.data.token || '')
+      localStorage.setItem('token', response.data.data.token || '')
       localStorage.setItem('userInfo', JSON.stringify({
-        userId: response.data.userId,
-        username: response.data.username,
-        userRole: response.data.userRole,
-        email: response.data.email,
-        phone: response.data.phone
+        userId: response.data.data.userId,
+        username: response.data.data.username,
+        userRole: response.data.data.userRole,
+        email: response.data.data.email,
+        phone: response.data.data.phone
       }))
-
       ElMessage.success('登录成功')
-      
       // 跳转到首页
-      router.push('/')
+      await router.push('/')
     } else {
-      ElMessage.error(response?.message || '登录失败，请检查用户名和密码')
+      ElMessage.error(response?.data.message || '登录失败，请检查用户名和密码')
     }
   } catch (error: any) {
     console.error('登录失败:', error)
@@ -234,7 +232,7 @@ const handleLogin = async () => {
     padding: 24px;
     margin: 0 16px;
   }
-  
+
   .logo-text {
     font-size: 24px;
   }
