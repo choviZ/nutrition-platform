@@ -27,6 +27,10 @@
           <el-icon><DataAnalysis /></el-icon>
           <span>营养记录</span>
         </el-menu-item>
+        <el-menu-item index="/assessment">
+          <el-icon><DataAnalysis /></el-icon>
+          <span>营养评估</span>
+        </el-menu-item>
         <el-menu-item index="/food">
           <el-icon><Food /></el-icon>
           <span>食物库</span>
@@ -50,8 +54,8 @@
     <div class="header-right">
       <el-dropdown @command="handleCommand">
         <div class="user-info">
-          <el-avatar 
-            :size="32" 
+          <el-avatar
+            :size="32"
             :src="userInfo.avatar || ''"
             class="user-avatar"
           >
@@ -149,13 +153,13 @@ const handleLogout = async () => {
       cancelButtonText: '取消',
       type: 'warning'
     })
-    
+
     // 清除本地存储的用户信息和token
     localStorage.removeItem('token')
     localStorage.removeItem('userInfo')
-    
+
     ElMessage.success('退出登录成功')
-    
+
     // 跳转到登录页
     router.push('/login')
   } catch (error) {
@@ -289,27 +293,27 @@ const handleLogout = async () => {
   .app-header {
     padding: 0 10px;
   }
-  
+
   .header-left {
     min-width: auto;
   }
-  
+
   .logo-text {
     display: none;
   }
-  
+
   .header-center {
     max-width: none;
   }
-  
+
   .header-menu .el-menu-item span {
     display: none;
   }
-  
+
   .header-right {
     min-width: auto;
   }
-  
+
   .user-name {
     display: none;
   }

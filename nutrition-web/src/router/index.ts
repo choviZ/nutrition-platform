@@ -52,6 +52,15 @@ const router = createRouter({
           }
         },
         {
+          path: '/assessment',
+          name: 'Assessment',
+          component: () => import('@/views/NutritionAssessment/index.vue'),
+          meta: {
+            title: '营养评估',
+            requiresAuth: true
+          }
+        },
+        {
           path: '/analysis',
           name: 'Analysis',
           component: () => import('@/views/Analysis/index.vue'),
@@ -110,7 +119,7 @@ router.beforeEach((to, from, next) => {
 
   // 检查路由是否需要认证
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
-  
+
   if (requiresAuth && !isAuthenticated()) {
     // 需要认证但未登录，跳转到登录页
     ElMessage.warning('请先登录')
