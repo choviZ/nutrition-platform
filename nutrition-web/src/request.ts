@@ -31,15 +31,12 @@ service.interceptors.request.use(
 
 // 响应拦截器
 service.interceptors.response.use(
-  (response: AxiosResponse) => {
-    // 对响应数据做点什么
-    const { code, message, data } = response.data
-
-    if (code === 200) {
-      return response.data // 返回完整的响应对象，包含code、data、message
+  (response) => {
+    if (response.data.code === 200) {
+      return response
     } else {
-      ElMessage.error(message || '请求失败')
-      return Promise.reject(new Error(message || '请求失败'))
+      ElMessage.error(response.data.message || '请求失败')
+      return Promise.reject(response.data)
     }
   },
   (error) => {

@@ -111,21 +111,23 @@ const handleLogin = async () => {
       password: loginForm.password
     })
 
-    if (response) {
+    if (response && response.code === 200 && response.data) {
       // 保存token
-      localStorage.setItem('token', response.token || '')
+      localStorage.setItem('token', response.data.token || '')
       localStorage.setItem('userInfo', JSON.stringify({
-        userId: response.userId,
-        username: response.username,
-        userRole: response.userRole,
-        email: response.email,
-        phone: response.phone
+        userId: response.data.userId,
+        username: response.data.username,
+        userRole: response.data.userRole,
+        email: response.data.email,
+        phone: response.data.phone
       }))
 
       ElMessage.success('登录成功')
       
       // 跳转到首页
       router.push('/')
+    } else {
+      ElMessage.error(response?.message || '登录失败，请检查用户名和密码')
     }
   } catch (error: any) {
     console.error('登录失败:', error)
