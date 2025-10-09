@@ -10,7 +10,6 @@ import com.zcw.np.model.entity.NutritionRequirement;
 import com.zcw.np.service.CommonOptionService;
 import com.zcw.np.service.NutritionRequirementService;
 import com.zcw.np.utils.UserContextUtils;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -38,14 +37,11 @@ public class NutritionRequirementServiceImpl extends ServiceImpl<NutritionRequir
         // 获取当前用户ID
         Long userId = UserContextUtils.getCurrentUserId();
         // 计算BMR（基础代谢率）
-        BigDecimal bmr = calculateBMR(request.getAge(), request.getGender(), 
-                                     request.getHeight(), request.getWeight());
+        BigDecimal bmr = calculateBMR(request.getAge(), request.getGender(), request.getHeight(), request.getWeight());
         // 计算每日热量需求
-        BigDecimal dailyCalories = calculateDailyCalories(bmr, request.getActivityLevel(), 
-                                                         request.getHealthGoal());
+        BigDecimal dailyCalories = calculateDailyCalories(bmr, request.getActivityLevel(), request.getHealthGoal());
         // 计算各营养素需求
-        NutritionRequirement requirement = calculateNutritionRequirements(
-            userId, dailyCalories, request.getWeight(), request.getGender(), request.getAge());
+        NutritionRequirement requirement = calculateNutritionRequirements(userId, dailyCalories, request.getWeight(), request.getGender(), request.getAge());
         // 计算BMI和健康状态
         BigDecimal bmi = calculateBMI(request.getHeight(), request.getWeight());
         String bmiStatus = getBMIStatus(bmi);
@@ -55,10 +51,23 @@ public class NutritionRequirementServiceImpl extends ServiceImpl<NutritionRequir
             requirement.setAssessmentDate(new Date());
             this.save(requirement);
         }
-        
         // 构建响应
         NutritionAssessmentResponse response = new NutritionAssessmentResponse();
-        BeanUtils.copyProperties(requirement, response);
+        // 手动设置属性，解决字段命名不一致问题
+        response.setRequirementId(requirement.getRequirementId());
+        response.setUserId(requirement.getUserId());
+        response.setAssessmentDate(requirement.getAssessmentDate());
+        response.setDailyCalories(requirement.getDailyCalories());
+        response.setProteinRequirement(requirement.getProtein());
+        response.setFatRequirement(requirement.getFat());
+        response.setCarbohydrateRequirement(requirement.getCarbohydrate());
+        response.setFiberRequirement(requirement.getFiber());
+        response.setVitaminARequirement(requirement.getVitaminA());
+        response.setVitaminCRequirement(requirement.getVitaminC());
+        response.setCalciumRequirement(requirement.getCalcium());
+        response.setIronRequirement(requirement.getIron());
+        response.setCreateTime(requirement.getCreateTime());
+        // 设置额外计算的字段
         response.setBmr(bmr);
         response.setBmi(bmi);
         response.setBmiStatus(bmiStatus);
@@ -95,7 +104,20 @@ public class NutritionRequirementServiceImpl extends ServiceImpl<NutritionRequir
         
         return requirements.stream().map(requirement -> {
             NutritionAssessmentResponse response = new NutritionAssessmentResponse();
-            BeanUtils.copyProperties(requirement, response);
+            // 手动设置属性，解决字段命名不一致问题
+            response.setRequirementId(requirement.getRequirementId());
+            response.setUserId(requirement.getUserId());
+            response.setAssessmentDate(requirement.getAssessmentDate());
+            response.setDailyCalories(requirement.getDailyCalories());
+            response.setProteinRequirement(requirement.getProtein());
+            response.setFatRequirement(requirement.getFat());
+            response.setCarbohydrateRequirement(requirement.getCarbohydrate());
+            response.setFiberRequirement(requirement.getFiber());
+            response.setVitaminARequirement(requirement.getVitaminA());
+            response.setVitaminCRequirement(requirement.getVitaminC());
+            response.setCalciumRequirement(requirement.getCalcium());
+            response.setIronRequirement(requirement.getIron());
+            response.setCreateTime(requirement.getCreateTime());
             return response;
         }).collect(Collectors.toList());
     }

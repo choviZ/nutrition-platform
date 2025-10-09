@@ -100,7 +100,6 @@ public class NutritionRequirementController {
     @ApiOperation(value = "删除营养需求评估记录", notes = "删除指定的营养需求评估记录")
     public BaseResponse<Boolean> deleteNutritionRequirement(@PathVariable Long id) {
         ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR, "记录ID不能为空");
-        
         try {
             boolean result = nutritionRequirementService.removeById(id);
             ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "删除失败，记录不存在");
@@ -119,14 +118,25 @@ public class NutritionRequirementController {
     @ApiOperation(value = "获取营养需求评估详情", notes = "根据ID获取营养需求评估记录详情")
     public BaseResponse<NutritionAssessmentResponse> getNutritionRequirementById(@PathVariable Long id) {
         ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR, "记录ID不能为空");
-        
         try {
             NutritionRequirement requirement = nutritionRequirementService.getById(id);
             ThrowUtils.throwIf(requirement == null, ErrorCode.NOT_FOUND_ERROR, "记录不存在");
             
             NutritionAssessmentResponse response = new NutritionAssessmentResponse();
-            org.springframework.beans.BeanUtils.copyProperties(requirement, response);
-            
+            // 手动设置属性，解决字段命名不一致问题
+            response.setRequirementId(requirement.getRequirementId());
+            response.setUserId(requirement.getUserId());
+            response.setAssessmentDate(requirement.getAssessmentDate());
+            response.setDailyCalories(requirement.getDailyCalories());
+            response.setProteinRequirement(requirement.getProtein());
+            response.setFatRequirement(requirement.getFat());
+            response.setCarbohydrateRequirement(requirement.getCarbohydrate());
+            response.setFiberRequirement(requirement.getFiber());
+            response.setVitaminARequirement(requirement.getVitaminA());
+            response.setVitaminCRequirement(requirement.getVitaminC());
+            response.setCalciumRequirement(requirement.getCalcium());
+            response.setIronRequirement(requirement.getIron());
+            response.setCreateTime(requirement.getCreateTime());
             return ResultUtils.success(response);
         } catch (Exception e) {
             log.error("获取营养需求评估详情失败", e);

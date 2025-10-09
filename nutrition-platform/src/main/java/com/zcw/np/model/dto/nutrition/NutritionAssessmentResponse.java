@@ -52,17 +52,11 @@ public class NutritionAssessmentResponse implements Serializable {
     @ApiModelProperty(value = "维生素C需求（mg）")
     private BigDecimal vitaminCRequirement;
 
-    @ApiModelProperty(value = "维生素D需求（μg）")
-    private BigDecimal vitaminDRequirement;
-
     @ApiModelProperty(value = "钙需求（mg）")
     private BigDecimal calciumRequirement;
 
     @ApiModelProperty(value = "铁需求（mg）")
     private BigDecimal ironRequirement;
-
-    @ApiModelProperty(value = "锌需求（mg）")
-    private BigDecimal zincRequirement;
 
     @ApiModelProperty(value = "BMI值")
     private BigDecimal bmi;
