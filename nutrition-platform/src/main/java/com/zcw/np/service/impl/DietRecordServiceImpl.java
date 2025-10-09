@@ -8,10 +8,12 @@ import com.zcw.np.common.ErrorCode;
 import com.zcw.np.constant.CommonConstant;
 import com.zcw.np.exception.ThrowUtils;
 import com.zcw.np.mapper.DietRecordMapper;
+import com.zcw.np.mapper.FoodNutritionMapper;
 import com.zcw.np.model.dto.dietrecord.DietRecordAddRequest;
 import com.zcw.np.model.dto.dietrecord.DietRecordQueryRequest;
 import com.zcw.np.model.dto.dietrecord.DietRecordUpdateRequest;
 import com.zcw.np.model.entity.DietRecord;
+import com.zcw.np.model.entity.FoodNutrition;
 import com.zcw.np.model.vo.DietRecordStatisticsVO;
 import com.zcw.np.model.vo.DietRecordVO;
 import com.zcw.np.service.DietRecordService;
@@ -19,9 +21,11 @@ import com.zcw.np.utils.SqlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -39,20 +43,43 @@ import java.util.stream.Collectors;
 public class DietRecordServiceImpl extends ServiceImpl<DietRecordMapper, DietRecord>
     implements DietRecordService{
 
+    @Autowired
+    private FoodNutritionMapper foodNutritionMapper;
+
     @Override
     public Long addDietRecord(DietRecordAddRequest dietRecordAddRequest, Long userId) {
         ThrowUtils.throwIf(dietRecordAddRequest == null, ErrorCode.PARAMS_ERROR);
         ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "用户ID不能为空");
-
+        // 获取食物名称和分量
+        String foodName = dietRecordAddRequest.getFoodName();
+        BigDecimal foodAmount = dietRecordAddRequest.getFoodAmount();
+        // 根据食物名称查询食物营养数据
+        QueryWrapper<FoodNutrition> foodQueryWrapper = new QueryWrapper<>();
+        foodQueryWrapper.eq("food_name", foodName);
+        FoodNutrition foodNutrition = foodNutritionMapper.selectOne(foodQueryWrapper);
+        ThrowUtils.throwIf(foodNutrition == null, ErrorCode.NOT_FOUND_ERROR, "食物不存在，请先添加该食物的营养数据");
+        // 计算营养成分
+        // 计算比例：食物分量 / 100g
+        BigDecimal ratio = foodAmount.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+        // 计算实际营养成分
+        BigDecimal calories = foodNutrition.getCaloriesPer100g().multiply(ratio).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal protein = foodNutrition.getProteinPer100g().multiply(ratio).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal carbohydrate = foodNutrition.getCarbohydratePer100g().multiply(ratio).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal fat = foodNutrition.getFatPer100g().multiply(ratio).setScale(2, RoundingMode.HALF_UP);
+        // 创建饮食记录
         DietRecord dietRecord = new DietRecord();
         BeanUtils.copyProperties(dietRecordAddRequest, dietRecord);
         dietRecord.setUserId(userId);
-        dietRecord.setCreateTime(LocalDateTime.now());
+        dietRecord.setRecordDate(LocalDate.now());
+        dietRecord.setCalories(calories);
+        dietRecord.setProtein(protein);
+        dietRecord.setCarbohydrate(carbohydrate);
+        dietRecord.setFat(fat);
+        dietRecord.setCreateTime(dietRecord.getCreateTime());
         dietRecord.setUpdateTime(LocalDateTime.now());
-
+        // 保存
         boolean result = this.save(dietRecord);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "添加饮食记录失败");
-
         return dietRecord.getRecordId();
     }
 

@@ -7,7 +7,7 @@ import lombok.Data;
 import javax.validation.constraints.*;
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * 饮食记录添加请求
@@ -19,10 +19,6 @@ import java.time.LocalDate;
 public class DietRecordAddRequest implements Serializable {
 
     private static final long serialVersionUID = 1L;
-
-    @ApiModelProperty(value = "记录日期", example = "2025-09-22", required = true)
-    @NotNull(message = "记录日期不能为空")
-    private LocalDate recordDate;
 
     @ApiModelProperty(value = "餐别：1-早餐，2-午餐，3-晚餐，4-加餐", example = "1", required = true)
     @NotNull(message = "餐别不能为空")
@@ -41,27 +37,7 @@ public class DietRecordAddRequest implements Serializable {
     @DecimalMax(value = "9999.99", message = "食物分量不能超过9999.99g")
     private BigDecimal foodAmount;
 
-    @ApiModelProperty(value = "热量（kcal）", example = "174.0", required = true)
-    @NotNull(message = "热量不能为空")
-    @DecimalMin(value = "0", message = "热量不能为负数")
-    @DecimalMax(value = "99999.99", message = "热量值过大")
-    private BigDecimal calories;
-
-    @ApiModelProperty(value = "蛋白质（g）", example = "3.9", required = true)
-    @NotNull(message = "蛋白质含量不能为空")
-    @DecimalMin(value = "0", message = "蛋白质含量不能为负数")
-    @DecimalMax(value = "9999.99", message = "蛋白质含量值过大")
-    private BigDecimal protein;
-
-    @ApiModelProperty(value = "碳水化合物（g）", example = "38.85", required = true)
-    @NotNull(message = "碳水化合物含量不能为空")
-    @DecimalMin(value = "0", message = "碳水化合物含量不能为负数")
-    @DecimalMax(value = "9999.99", message = "碳水化合物含量值过大")
-    private BigDecimal carbohydrate;
-
-    @ApiModelProperty(value = "脂肪（g）", example = "0.45", required = true)
-    @NotNull(message = "脂肪含量不能为空")
-    @DecimalMin(value = "0", message = "脂肪含量不能为负数")
-    @DecimalMax(value = "9999.99", message = "脂肪含量值过大")
-    private BigDecimal fat;
+    @ApiModelProperty(value = "记录时间", example = "2022-01-01 00:00:00", required = true)
+    @NotNull(message = "记录时间不能为空")
+    private LocalDateTime createTime;
 }
