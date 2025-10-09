@@ -128,7 +128,7 @@
         </div>
       </template>
     </el-dialog>
-    
+
     <!-- 评估记录表格 -->
     <el-card class="assessment-records-card">
       <template #header>
@@ -140,8 +140,9 @@
           </el-button>
         </div>
       </template>
-      
+
       <el-table :data="assessmentRecords" style="width: 100%" v-loading="recordsLoading">
+        <el-table-column prop="requirementId" label="需求ID" width="80" />
         <el-table-column prop="assessmentDate" label="评估日期">
           <template #default="{ row }">
             {{ formatDate(row.assessmentDate) }}
@@ -161,16 +162,21 @@
         <el-table-column prop="dailyCalories" label="每日热量需求(kcal)" />
         <el-table-column label="操作">
           <template #default="{ row }">
-            <el-button type="primary" size="small" @click="viewRecordDetail(row)">
-              查看详情
-            </el-button>
-            <el-button type="danger" size="small" @click="deleteRecord(row.requirementId)">
-              删除
-            </el-button>
+            <el-space direction="vertical">
+              <el-button type="primary" size="small" @click="viewRecordDetail(row)">
+                查看详情
+              </el-button>
+              <el-button type="success" size="small" @click="createDietPlan(row)">
+                创建饮食方案
+              </el-button>
+              <el-button type="danger" size="small" @click="deleteRecord(row.requirementId)">
+                删除
+              </el-button>
+            </el-space>
           </template>
         </el-table-column>
       </el-table>
-      
+
       <div class="pagination-container">
         <el-pagination
           v-model:current-page="currentPage"
@@ -188,6 +194,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import {
@@ -195,8 +202,9 @@ import {
   queryNutritionRequirementsUsingPost1,
   deleteNutritionRequirementUsingGet1,
   getNutritionRequirementByIdUsingGet1
-} from '@/nutrition-api/yingyangxuqiupingguguanli.ts'
+} from '@/nutrition-api/yingyangxuqiupingguguanli'
 
+const router = useRouter()
 const assessmentFormRef = ref()
 const submitLoading = ref(false)
 const resultDialogVisible = ref(false)
@@ -325,7 +333,7 @@ const deleteRecord = async (requirementId: number) => {
       cancelButtonText: '取消',
       type: 'warning'
     })
-    
+
     const response = await deleteNutritionRequirementUsingGet1({ id: requirementId })
     if (response.data.code === 200) {
       ElMessage.success('删除成功')
@@ -339,6 +347,24 @@ const deleteRecord = async (requirementId: number) => {
       ElMessage.error('删除失败')
     }
   }
+}
+
+/**
+ * 创建饮食方案
+ */
+const createDietPlan = (record: API.NutritionAssessmentResponse) => {
+  if (!record.requirementId) {
+    ElMessage.warning('该记录没有营养需求ID，无法创建饮食方案')
+    return
+  }
+
+  // 跳转到饮食方案页面，并传递营养需求ID
+  router.push({
+    path: '/diet-plan',
+    query: {
+      requirementId: record.requirementId
+    }
+  })
 }
 
 /**
@@ -364,12 +390,12 @@ const handleSizeChange = (size: number) => {
 const formatDate = (dateString: string) => {
   if (!dateString) return ''
   const date = new Date(dateString)
-  
+
   // 获取年月日
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
-  
+
   // 返回格式化后的日期字符串，只包含年月日
   return `${year}-${month}-${day}`
 }

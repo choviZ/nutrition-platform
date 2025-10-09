@@ -57,9 +57,6 @@ public class DietPlanVO implements Serializable {
     @ApiModelProperty(value = "总脂肪（g）", example = "80.0")
     private BigDecimal totalFat;
 
-    @ApiModelProperty(value = "总膳食纤维（g）", example = "30.0")
-    private BigDecimal totalFiber;
-
     @ApiModelProperty(value = "方案状态（1-草稿，2-已确认，3-已执行）", example = "2")
     private Integer status;
 

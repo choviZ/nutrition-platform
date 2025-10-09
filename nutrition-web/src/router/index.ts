@@ -95,6 +95,24 @@ const router = createRouter({
             title: '食物管理',
             requiresAuth: true
           }
+        },
+        {
+          path: '/diet-plan',
+          name: 'DietPlan',
+          component: () => import('@/views/DietPlan/index.vue'),
+          meta: {
+            title: '饮食方案',
+            requiresAuth: true
+          }
+        },
+        {
+          path: '/diet-plan-records',
+          name: 'DietPlanRecords',
+          component: () => import('@/views/DietPlanRecords/index.vue'),
+          meta: {
+            title: '饮食方案记录',
+            requiresAuth: true
+          }
         }
       ]
     },

@@ -247,8 +247,6 @@ declare namespace API {
     totalCarbohydrate?: number
     /** 总脂肪（g） */
     totalFat?: number
-    /** 总膳食纤维（g） */
-    totalFiber?: number
     /** 总蛋白质（g） */
     totalProtein?: number
     /** 更新时间 */
