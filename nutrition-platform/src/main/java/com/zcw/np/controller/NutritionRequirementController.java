@@ -137,6 +137,29 @@ public class NutritionRequirementController {
             response.setCalciumRequirement(requirement.getCalcium());
             response.setIronRequirement(requirement.getIron());
             response.setCreateTime(requirement.getCreateTime());
+            // 设置BMI和BMI状态
+            response.setBmi(requirement.getBmi());
+            // 将整数类型的BMI状态转换为字符串类型
+            String bmiStatus = "正常"; // 默认值
+            if (requirement.getBmiStatus() != null) {
+                switch (requirement.getBmiStatus()) {
+                    case 0:
+                        bmiStatus = "偏瘦";
+                        break;
+                    case 1:
+                        bmiStatus = "正常";
+                        break;
+                    case 2:
+                        bmiStatus = "超重";
+                        break;
+                    case 3:
+                        bmiStatus = "肥胖";
+                        break;
+                    default:
+                        bmiStatus = "正常";
+                }
+            }
+            response.setBmiStatus(bmiStatus);
             return ResultUtils.success(response);
         } catch (Exception e) {
             log.error("获取营养需求评估详情失败", e);

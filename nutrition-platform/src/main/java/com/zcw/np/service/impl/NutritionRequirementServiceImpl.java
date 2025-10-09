@@ -49,6 +49,9 @@ public class NutritionRequirementServiceImpl extends ServiceImpl<NutritionRequir
         // 保存评估结果
         if (request.getSaveResult()) {
             requirement.setAssessmentDate(new Date());
+            // 设置BMI和BMI状态到数据库
+            requirement.setBmi(bmi);
+            requirement.setBmiStatus(convertBMIStatusToInteger(bmiStatus));
             this.save(requirement);
         }
         // 构建响应
@@ -118,6 +121,9 @@ public class NutritionRequirementServiceImpl extends ServiceImpl<NutritionRequir
             response.setCalciumRequirement(requirement.getCalcium());
             response.setIronRequirement(requirement.getIron());
             response.setCreateTime(requirement.getCreateTime());
+            // 设置BMI和BMI状态
+            response.setBmi(requirement.getBmi());
+            response.setBmiStatus(convertBMIStatusToString(requirement.getBmiStatus()));
             return response;
         }).collect(Collectors.toList());
     }
@@ -224,6 +230,47 @@ public class NutritionRequirementServiceImpl extends ServiceImpl<NutritionRequir
             return "超重";
         } else {
             return "肥胖";
+        }
+    }
+    
+    /**
+     * 将字符串类型的BMI状态转换为整数类型
+     * 0-偏瘦 1-正常，2-偏重，3-肥胖
+     */
+    private Integer convertBMIStatusToInteger(String bmiStatus) {
+        switch (bmiStatus) {
+            case "偏瘦":
+                return 0;
+            case "正常":
+                return 1;
+            case "超重":
+                return 2;
+            case "肥胖":
+                return 3;
+            default:
+                return 1; // 默认为正常
+        }
+    }
+    
+    /**
+     * 将整数类型的BMI状态转换为字符串类型
+     * 0-偏瘦 1-正常，2-偏重，3-肥胖
+     */
+    private String convertBMIStatusToString(Integer bmiStatus) {
+        if (bmiStatus == null) {
+            return "正常";
+        }
+        switch (bmiStatus) {
+            case 0:
+                return "偏瘦";
+            case 1:
+                return "正常";
+            case 2:
+                return "超重";
+            case 3:
+                return "肥胖";
+            default:
+                return "正常"; // 默认为正常
         }
     }
     

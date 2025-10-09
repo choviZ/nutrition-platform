@@ -29,6 +29,18 @@ public class NutritionRequirement implements Serializable {
     private Long userId;
 
     /**
+     * BMI指数
+     */
+    @TableField(value = "bmi")
+    private BigDecimal bmi;
+
+    /**
+     * BMI状态：0-偏瘦 1-正常，2-偏重，3-肥胖
+     */
+    @TableField(value = "bmi_status")
+    private Integer bmiStatus;
+
+    /**
      * 评估日期
      */
     @TableField(value = "assessment_date")

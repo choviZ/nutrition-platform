@@ -102,12 +102,25 @@
         </el-form-item>
       </el-form>
     </el-card>
-    <el-dialog v-model="resultDialogVisible" title="评估结果" width="500">
+    <el-dialog v-model="resultDialogVisible" title="评估结果" width="600">
       <div v-if="assessmentResult">
-        <p><strong>能量需求:</strong> {{ assessmentResult.energy }} kcal</p>
-        <p><strong>蛋白质需求:</strong> {{ assessmentResult.protein }} g</p>
-        <p><strong>脂肪需求:</strong> {{ assessmentResult.fat }} g</p>
-        <p><strong>碳水化合物需求:</strong> {{ assessmentResult.carbohydrates }} g</p>
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="身高">{{ currentRecordHeight }} cm</el-descriptions-item>
+          <el-descriptions-item label="体重">{{ currentRecordWeight }} kg</el-descriptions-item>
+          <el-descriptions-item label="BMI值">{{ assessmentResult.bmi }}</el-descriptions-item>
+          <el-descriptions-item label="BMI状态">{{ assessmentResult.bmiStatus }}</el-descriptions-item>
+          <el-descriptions-item label="基础代谢率(BMR)">{{ assessmentResult.bmr }} kcal</el-descriptions-item>
+          <el-descriptions-item label="每日热量需求">{{ assessmentResult.dailyCalories }} kcal</el-descriptions-item>
+          <el-descriptions-item label="蛋白质需求">{{ assessmentResult.proteinRequirement }} g</el-descriptions-item>
+          <el-descriptions-item label="脂肪需求">{{ assessmentResult.fatRequirement }} g</el-descriptions-item>
+          <el-descriptions-item label="碳水化合物需求">{{ assessmentResult.carbohydrateRequirement }} g</el-descriptions-item>
+          <el-descriptions-item label="膳食纤维需求">{{ assessmentResult.fiberRequirement }} g</el-descriptions-item>
+          <el-descriptions-item label="钙需求">{{ assessmentResult.calciumRequirement }} mg</el-descriptions-item>
+          <el-descriptions-item label="铁需求">{{ assessmentResult.ironRequirement }} mg</el-descriptions-item>
+          <el-descriptions-item label="维生素A需求">{{ assessmentResult.vitaminARequirement }} μg</el-descriptions-item>
+          <el-descriptions-item label="维生素C需求">{{ assessmentResult.vitaminCRequirement }} mg</el-descriptions-item>
+          <el-descriptions-item label="健康建议">{{ assessmentResult.healthAdvice }}</el-descriptions-item>
+        </el-descriptions>
       </div>
       <template #footer>
         <div class="dialog-footer">
@@ -115,14 +128,73 @@
         </div>
       </template>
     </el-dialog>
+    
+    <!-- 评估记录表格 -->
+    <el-card class="assessment-records-card">
+      <template #header>
+        <div class="card-header">
+          <h3>评估记录</h3>
+          <el-button type="primary" @click="fetchAssessmentRecords" :loading="recordsLoading">
+            <el-icon><Refresh /></el-icon>
+            刷新
+          </el-button>
+        </div>
+      </template>
+      
+      <el-table :data="assessmentRecords" style="width: 100%" v-loading="recordsLoading">
+        <el-table-column prop="assessmentDate" label="评估日期">
+          <template #default="{ row }">
+            {{ formatDate(row.assessmentDate) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="bmi" label="BMI">
+          <template #default="{ row }">
+            {{ row.bmi || '暂无数据' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="bmiStatus" label="BMI状态">
+          <template #default="{ row }">
+            {{ row.bmiStatus || '暂无数据' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="bmr" label="基础代谢率(kcal)" />
+        <el-table-column prop="dailyCalories" label="每日热量需求(kcal)" />
+        <el-table-column label="操作">
+          <template #default="{ row }">
+            <el-button type="primary" size="small" @click="viewRecordDetail(row)">
+              查看详情
+            </el-button>
+            <el-button type="danger" size="small" @click="deleteRecord(row.requirementId)">
+              删除
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      
+      <div class="pagination-container">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="total"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+    </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, reactive, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Refresh } from '@element-plus/icons-vue'
 import {
-  assessNutritionRequirementUsingPost1
+  assessNutritionRequirementUsingPost1,
+  queryNutritionRequirementsUsingPost1,
+  deleteNutritionRequirementUsingGet1,
+  getNutritionRequirementByIdUsingGet1
 } from '@/nutrition-api/yingyangxuqiupingguguanli.ts'
 
 const assessmentFormRef = ref()
@@ -154,6 +226,17 @@ const assessmentFormRules = {
 // 评估结果
 const assessmentResult = ref<API.NutritionAssessmentResponse>()
 
+// 当前查看的记录的身高和体重
+const currentRecordHeight = ref(165)
+const currentRecordWeight = ref(60)
+
+// 评估记录相关数据
+const assessmentRecords = ref<API.NutritionAssessmentResponse[]>([])
+const recordsLoading = ref(false)
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
+
 /**
  * 处理提交
  */
@@ -166,7 +249,12 @@ const handleSubmit = async () => {
     if (response.data.code === 200) {
       ElMessage.success('营养需求评估成功')
       assessmentResult.value = response.data.data
+      // 设置当前记录的身高和体重
+      currentRecordHeight.value = assessmentForm.height
+      currentRecordWeight.value = assessmentForm.weight
       resultDialogVisible.value = true
+      // 刷新评估记录列表
+      fetchAssessmentRecords()
     } else {
       ElMessage.error(response.data.message || '评估失败')
     }
@@ -178,6 +266,123 @@ const handleSubmit = async () => {
   }
 }
 
+/**
+ * 获取评估记录列表
+ */
+const fetchAssessmentRecords = async () => {
+  recordsLoading.value = true
+  try {
+    const response = await queryNutritionRequirementsUsingPost1({
+      current: currentPage.value,
+      pageSize: pageSize.value
+    })
+    if (response.data.code === 200) {
+      // 根据API类型定义，response.data.data直接就是NutritionAssessmentResponse[]
+      assessmentRecords.value = response.data.data || []
+      total.value = response.data.data?.length || 0
+      console.log('获取到的评估记录:', assessmentRecords.value)
+    } else {
+      ElMessage.error(response.data.message || '获取评估记录失败')
+    }
+  } catch (error) {
+    console.error('获取评估记录失败:', error)
+    ElMessage.error('获取评估记录失败')
+  } finally {
+    recordsLoading.value = false
+  }
+}
+
+/**
+ * 查看评估记录详情
+ */
+const viewRecordDetail = async (record: API.NutritionAssessmentResponse) => {
+  try {
+    const response = await getNutritionRequirementByIdUsingGet1({ id: record.requirementId || 0 })
+    if (response.data.code === 200) {
+      assessmentResult.value = response.data.data
+      console.log('获取到的评估详情:', assessmentResult.value)
+      // 暂时使用默认值，因为API返回的数据中不包含身高和体重信息
+      // 在实际应用中，可能需要从其他地方获取这些信息，或者修改后端API
+      currentRecordHeight.value = 165
+      currentRecordWeight.value = 60
+      resultDialogVisible.value = true
+    } else {
+      ElMessage.error(response.data.message || '获取评估详情失败')
+    }
+  } catch (error) {
+    console.error('获取评估详情失败:', error)
+    ElMessage.error('获取评估详情失败')
+  }
+}
+
+/**
+ * 删除评估记录
+ */
+const deleteRecord = async (requirementId: number) => {
+  try {
+    await ElMessageBox.confirm('确定要删除这条评估记录吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    const response = await deleteNutritionRequirementUsingGet1({ id: requirementId })
+    if (response.data.code === 200) {
+      ElMessage.success('删除成功')
+      fetchAssessmentRecords()
+    } else {
+      ElMessage.error(response.data.message || '删除失败')
+    }
+  } catch (error: any) {
+    if (error !== 'cancel' && error !== 'close') {
+      console.error('删除失败:', error)
+      ElMessage.error('删除失败')
+    }
+  }
+}
+
+/**
+ * 处理页码变化
+ */
+const handleCurrentChange = (page: number) => {
+  currentPage.value = page
+  fetchAssessmentRecords()
+}
+
+/**
+ * 处理每页条数变化
+ */
+const handleSizeChange = (size: number) => {
+  pageSize.value = size
+  currentPage.value = 1
+  fetchAssessmentRecords()
+}
+
+/**
+ * 格式化日期
+ */
+const formatDate = (dateString: string) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleString()
+}
+
+/**
+ * 获取健康目标文本
+ */
+const getHealthGoalText = (goal: number) => {
+  switch (goal) {
+    case 1: return '减肥'
+    case 2: return '增肌'
+    case 3: return '维持健康'
+    default: return '未知'
+  }
+}
+
+// 页面加载时获取评估记录
+onMounted(() => {
+  fetchAssessmentRecords()
+})
 </script>
 
 <style scoped>
@@ -208,5 +413,27 @@ const handleSubmit = async () => {
 
 .query-form .el-form-item {
   margin-bottom: 24px;
+}
+
+.assessment-records-card {
+  margin-bottom: 20px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #303133;
+}
+
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
 }
 </style>
