@@ -258,22 +258,14 @@ declare namespace API {
   }
 
   type DietRecordAddRequest = {
-    /** 热量（kcal） */
-    calories: number
-    /** 碳水化合物（g） */
-    carbohydrate: number
-    /** 脂肪（g） */
-    fat: number
+    /** 记录时间 */
+    createTime: string
     /** 食物分量（g） */
     foodAmount: number
     /** 食物名称 */
     foodName: string
     /** 餐别：1-早餐，2-午餐，3-晚餐，4-加餐 */
     mealType: number
-    /** 蛋白质（g） */
-    protein: number
-    /** 记录日期 */
-    recordDate: string
   }
 
   type DietRecordStatisticsVO = {
@@ -697,10 +689,6 @@ declare namespace API {
     vitaminARequirement?: number
     /** 维生素C需求（mg） */
     vitaminCRequirement?: number
-    /** 维生素D需求（μg） */
-    vitaminDRequirement?: number
-    /** 锌需求（mg） */
-    zincRequirement?: number
   }
 
   type NutritionComplianceVO = {

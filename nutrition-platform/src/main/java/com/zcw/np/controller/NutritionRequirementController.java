@@ -137,7 +137,7 @@ public class NutritionRequirementController {
             response.setCalciumRequirement(requirement.getCalcium());
             response.setIronRequirement(requirement.getIron());
             response.setCreateTime(requirement.getCreateTime());
-            // 设置BMI和BMI状态
+            // 设置BMI、BMI状态和BMR
             response.setBmi(requirement.getBmi());
             // 将整数类型的BMI状态转换为字符串类型
             String bmiStatus = "正常"; // 默认值
@@ -160,6 +160,7 @@ public class NutritionRequirementController {
                 }
             }
             response.setBmiStatus(bmiStatus);
+            response.setBmr(requirement.getBmr());
             return ResultUtils.success(response);
         } catch (Exception e) {
             log.error("获取营养需求评估详情失败", e);

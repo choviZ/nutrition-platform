@@ -41,6 +41,12 @@ public class NutritionRequirement implements Serializable {
     private Integer bmiStatus;
 
     /**
+     * 基础代谢率（BMR）
+     */
+    @TableField(value = "bmr")
+    private BigDecimal bmr;
+
+    /**
      * 评估日期
      */
     @TableField(value = "assessment_date")

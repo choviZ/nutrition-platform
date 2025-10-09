@@ -27,7 +27,7 @@ export async function deleteMyHealthProfileUsingPost1(options?: { [key: string]:
 
 /** 删除指定用户健康档案 POST /api/health-profile/delete/${param0} */
 export async function deleteHealthProfileByUserIdUsingPost1(
-  // 叠加生成的参数型注释
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.deleteHealthProfileByUserIdUsingPOST1Params,
   options?: { [key: string]: any }
 ) {
@@ -57,7 +57,7 @@ export async function getMyHealthProfileUsingGet1(options?: { [key: string]: any
 
 /** 获取指定用户健康档案 GET /api/health-profile/get/${param0} */
 export async function getHealthProfileByUserIdUsingGet1(
-  // 叠加生成的参数型注释
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.getHealthProfileByUserIdUsingGET1Params,
   options?: { [key: string]: any }
 ) {

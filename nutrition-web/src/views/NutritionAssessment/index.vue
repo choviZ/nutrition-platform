@@ -364,7 +364,14 @@ const handleSizeChange = (size: number) => {
 const formatDate = (dateString: string) => {
   if (!dateString) return ''
   const date = new Date(dateString)
-  return date.toLocaleString()
+  
+  // 获取年月日
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  
+  // 返回格式化后的日期字符串，只包含年月日
+  return `${year}-${month}-${day}`
 }
 
 /**

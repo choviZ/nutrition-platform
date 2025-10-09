@@ -49,9 +49,10 @@ public class NutritionRequirementServiceImpl extends ServiceImpl<NutritionRequir
         // 保存评估结果
         if (request.getSaveResult()) {
             requirement.setAssessmentDate(new Date());
-            // 设置BMI和BMI状态到数据库
+            // 设置BMI、BMI状态和BMR到数据库
             requirement.setBmi(bmi);
             requirement.setBmiStatus(convertBMIStatusToInteger(bmiStatus));
+            requirement.setBmr(bmr);
             this.save(requirement);
         }
         // 构建响应
@@ -121,9 +122,10 @@ public class NutritionRequirementServiceImpl extends ServiceImpl<NutritionRequir
             response.setCalciumRequirement(requirement.getCalcium());
             response.setIronRequirement(requirement.getIron());
             response.setCreateTime(requirement.getCreateTime());
-            // 设置BMI和BMI状态
+            // 设置BMI、BMI状态和BMR
             response.setBmi(requirement.getBmi());
             response.setBmiStatus(convertBMIStatusToString(requirement.getBmiStatus()));
+            response.setBmr(requirement.getBmr());
             return response;
         }).collect(Collectors.toList());
     }

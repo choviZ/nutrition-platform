@@ -443,9 +443,9 @@ const handleDelete = async (row: API.UserVO) => {
     const response = await deleteUserUsingPost1({ id: row.userId })
     if (response.data.code === 200) {
       ElMessage.success('删除成功')
-      loadUserList()
+      await loadUserList()
     } else {
-      ElMessage.error(response.message || '删除失败')
+      ElMessage.error(response.data.message || '删除失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -472,9 +472,9 @@ const handleSubmit = async () => {
     if (response.data.code === 200) {
       ElMessage.success(isEdit.value ? '更新成功' : '添加成功')
       dialogVisible.value = false
-      loadUserList()
+      await loadUserList()
     } else {
-      ElMessage.error(response.message || (isEdit.value ? '更新失败' : '添加失败'))
+      ElMessage.error(response.data.message || (isEdit.value ? '更新失败' : '添加失败'))
     }
   } catch (error) {
     console.error('Submit user error:', error)

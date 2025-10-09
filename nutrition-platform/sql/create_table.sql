@@ -55,6 +55,7 @@ create table if not exists nutrition_requirement
     user_id         bigint                             not null comment '用户ID',
     bmi             decimal(5, 2) comment 'BMI指数',
     bmi_status      tinyint                            null comment 'BMI状态：0-偏瘦 1-正常，2-偏重，3-肥胖',
+    bmr             decimal(8, 2)                      null comment '基础代谢率（kcal）',
     assessment_date date                               not null comment '评估日期',
     daily_calories  decimal(8, 2)                      not null comment '每日热量需求（kcal）',
     protein         decimal(8, 2)                      not null comment '蛋白质需求（g）',
