@@ -133,22 +133,3 @@ create table if not exists diet_record
     index idx_user_date (user_id, record_date),
     index idx_meal_type (meal_type)
 ) comment '饮食记录表' collate = utf8mb4_unicode_ci;
-
--- 插入一些基础食物营养数据
-INSERT INTO food_nutrition (food_name, food_category, calories_per_100g, protein_per_100g, carbohydrate_per_100g,
-                            fat_per_100g, fiber_per_100g)
-VALUES ('白米饭', '主食', 116.00, 2.60, 25.90, 0.30, 0.30),
-       ('全麦面包', '主食', 246.00, 13.20, 41.30, 4.20, 6.80),
-       ('鸡胸肉', '肉类', 165.00, 31.00, 0.00, 3.60, 0.00),
-       ('三文鱼', '鱼类', 208.00, 25.40, 0.00, 12.40, 0.00),
-       ('鸡蛋', '蛋类', 155.00, 13.30, 1.10, 10.60, 0.00),
-       ('牛奶', '乳制品', 54.00, 3.00, 5.00, 3.20, 0.00),
-       ('西兰花', '蔬菜', 34.00, 2.80, 7.00, 0.40, 2.60),
-       ('胡萝卜', '蔬菜', 41.00, 0.90, 9.60, 0.20, 2.80),
-       ('苹果', '水果', 52.00, 0.30, 13.80, 0.20, 2.40),
-       ('香蕉', '水果', 89.00, 1.10, 22.80, 0.30, 2.60);
-
--- 插入测试用户
-INSERT INTO user (username, password, email, real_name, gender, age, height, weight, health_goal)
-VALUES ('testuser', '$2a$10$7JB720yubVSOfvVWdBYoOOxYH/tY.7VulJApVYpwUAdemgPL4bF46', 'test@example.com', '测试用户', 1,
-        25, 175.00, 70.00, 3);
