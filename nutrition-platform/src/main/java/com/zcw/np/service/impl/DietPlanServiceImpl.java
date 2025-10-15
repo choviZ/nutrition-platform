@@ -60,16 +60,23 @@ public class DietPlanServiceImpl extends ServiceImpl<DietPlanMapper, DietPlan> i
         // 2. 解析餐次分配比例
         Map<String, BigDecimal> mealRatios = parseMealRatio(request.getMealRatio());
 
-        // 3. 生成各餐次方案
-        List<DietPlanVO.MealItem> breakfast = generateMealItems(requirement, mealRatios.get("breakfast"), 
-                request.getDietaryPreferences(), request.getForbiddenFoods(), request.getCookingMethods());
-        List<DietPlanVO.MealItem> lunch = generateMealItems(requirement, mealRatios.get("lunch"), 
-                request.getDietaryPreferences(), request.getForbiddenFoods(), request.getCookingMethods());
-        List<DietPlanVO.MealItem> dinner = generateMealItems(requirement, mealRatios.get("dinner"), 
-                request.getDietaryPreferences(), request.getForbiddenFoods(), request.getCookingMethods());
+        // 3. 生成各餐次方案 - 考虑季节性和口味偏好
+        List<DietPlanVO.MealItem> breakfast = generateMealItemsWithSeasonality(requirement, mealRatios.get("breakfast"), 
+                request.getDietaryPreferences(), request.getForbiddenFoods(), request.getCookingMethods(), 
+                request.getTastePreference(), request.getPlanDate());
+                
+        List<DietPlanVO.MealItem> lunch = generateMealItemsWithSeasonality(requirement, mealRatios.get("lunch"), 
+                request.getDietaryPreferences(), request.getForbiddenFoods(), request.getCookingMethods(), 
+                request.getTastePreference(), request.getPlanDate());
+                
+        List<DietPlanVO.MealItem> dinner = generateMealItemsWithSeasonality(requirement, mealRatios.get("dinner"), 
+                request.getDietaryPreferences(), request.getForbiddenFoods(), request.getCookingMethods(), 
+                request.getTastePreference(), request.getPlanDate());
+                
         List<DietPlanVO.MealItem> snacks = request.getIncludeSnacks() ? 
-                generateMealItems(requirement, mealRatios.get("snacks"), 
-                        request.getDietaryPreferences(), request.getForbiddenFoods(), request.getCookingMethods()) : 
+                generateMealItemsWithSeasonality(requirement, mealRatios.get("snacks"), 
+                        request.getDietaryPreferences(), request.getForbiddenFoods(), request.getCookingMethods(), 
+                        request.getTastePreference(), request.getPlanDate()) : 
                 new ArrayList<>();
 
         // 4. 创建饮食方案实体
@@ -328,6 +335,7 @@ public class DietPlanServiceImpl extends ServiceImpl<DietPlanMapper, DietPlan> i
         BigDecimal mealProtein = requirement.getProtein().multiply(mealRatio);
         BigDecimal mealCarbohydrate = requirement.getCarbohydrate().multiply(mealRatio);
         BigDecimal mealFat = requirement.getFat().multiply(mealRatio);
+        
         // 获取符合条件的食物
         QueryWrapper<FoodNutrition> queryWrapper = new QueryWrapper<>();
         if (!CollectionUtils.isEmpty(forbiddenFoods)) {
@@ -337,27 +345,356 @@ public class DietPlanServiceImpl extends ServiceImpl<DietPlanMapper, DietPlan> i
         if (CollectionUtils.isEmpty(availableFoods)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "没有可用的食物数据");
         }
-        // 简化的食物搭配算法：按营养密度选择食物
+        
+        // 根据饮食偏好过滤食物
+        if (!CollectionUtils.isEmpty(dietaryPreferences)) {
+            availableFoods = filterFoodsByDietaryPreferences(availableFoods, dietaryPreferences);
+        }
+        
+        // 改进的食物搭配算法：增加多样性和随机性
         List<DietPlanVO.MealItem> mealItems = new ArrayList<>();
-        // 选择主食（碳水化合物来源）
-        FoodNutrition mainFood = selectFoodByNutrient(availableFoods, "carbohydrate");
-        if (mainFood != null) {
-            BigDecimal amount = calculateFoodAmount(mainFood, mealCarbohydrate.multiply(BigDecimal.valueOf(0.6)), "carbohydrate");
+        Random random = new Random();
+        
+        // 1. 选择主食（碳水化合物来源）- 从符合条件的食物中随机选择
+        List<FoodNutrition> mainFoods = availableFoods.stream()
+                .filter(food -> food.getCarbohydratePer100g().compareTo(BigDecimal.valueOf(15)) > 0)
+                .collect(Collectors.toList());
+        
+        if (!CollectionUtils.isEmpty(mainFoods)) {
+            // 随机选择一种主食，增加多样性
+            FoodNutrition mainFood = mainFoods.get(random.nextInt(mainFoods.size()));
+            // 根据餐次调整主食比例
+            BigDecimal carbRatio = getRandomCarbRatio(mealRatio, random);
+            BigDecimal amount = calculateFoodAmount(mainFood, mealCarbohydrate.multiply(carbRatio), "carbohydrate");
             mealItems.add(createMealItem(mainFood, amount, getRandomCookingMethod(cookingMethods)));
         }
-        // 选择蛋白质来源
-        FoodNutrition proteinFood = selectFoodByNutrient(availableFoods, "protein");
-        if (proteinFood != null) {
-            BigDecimal amount = calculateFoodAmount(proteinFood, mealProtein.multiply(BigDecimal.valueOf(0.8)), "protein");
+        
+        // 2. 选择蛋白质来源 - 从符合条件的食物中随机选择
+        List<FoodNutrition> proteinFoods = availableFoods.stream()
+                .filter(food -> food.getProteinPer100g().compareTo(BigDecimal.valueOf(10)) > 0)
+                .collect(Collectors.toList());
+        
+        if (!CollectionUtils.isEmpty(proteinFoods)) {
+            // 随机选择一种蛋白质食物
+            FoodNutrition proteinFood = proteinFoods.get(random.nextInt(proteinFoods.size()));
+            // 根据餐次调整蛋白质比例
+            BigDecimal proteinRatio = getRandomProteinRatio(mealRatio, random);
+            BigDecimal amount = calculateFoodAmount(proteinFood, mealProtein.multiply(proteinRatio), "protein");
             mealItems.add(createMealItem(proteinFood, amount, getRandomCookingMethod(cookingMethods)));
         }
-        // 选择蔬菜（纤维和维生素来源）
-        FoodNutrition vegetable = selectFoodByCategory(availableFoods, "蔬菜");
-        if (vegetable != null) {
-            BigDecimal amount = BigDecimal.valueOf(100); // 固定100g蔬菜
-            mealItems.add(createMealItem(vegetable, amount, getRandomCookingMethod(cookingMethods)));
+        
+        // 3. 选择蔬菜 - 从多种蔬菜中随机选择2-3种
+        List<FoodNutrition> vegetables = availableFoods.stream()
+                .filter(food -> food.getFoodCategory() != null && 
+                        (food.getFoodCategory().contains("蔬菜") || 
+                         food.getFoodCategory().contains("菌菇") ||
+                         food.getFoodCategory().contains("藻类")))
+                .collect(Collectors.toList());
+        
+        if (!CollectionUtils.isEmpty(vegetables)) {
+            // 随机选择2-3种蔬菜，增加多样性
+            int vegCount = Math.min(2 + random.nextInt(2), vegetables.size());
+            Collections.shuffle(vegetables);
+            
+            for (int i = 0; i < vegCount; i++) {
+                FoodNutrition vegetable = vegetables.get(i);
+                // 每种蔬菜的分量在50-150g之间随机
+                BigDecimal amount = BigDecimal.valueOf(50 + random.nextInt(101));
+                mealItems.add(createMealItem(vegetable, amount, getRandomCookingMethod(cookingMethods)));
+            }
         }
+        
+        // 4. 根据餐次和营养需求，可能添加水果或坚果
+        if (random.nextBoolean() && mealRatio.compareTo(BigDecimal.valueOf(0.3)) < 0) { // 加餐或早餐时可能添加
+            List<FoodNutrition> fruits = availableFoods.stream()
+                    .filter(food -> food.getFoodCategory() != null && 
+                            (food.getFoodCategory().contains("水果")))
+                    .collect(Collectors.toList());
+            
+            if (!CollectionUtils.isEmpty(fruits)) {
+                FoodNutrition fruit = fruits.get(random.nextInt(fruits.size()));
+                BigDecimal amount = BigDecimal.valueOf(100 + random.nextInt(100)); // 100-200g水果
+                mealItems.add(createMealItem(fruit, amount, "生食")); // 水果通常是生食
+            }
+        }
+        
+        // 5. 根据餐次和营养需求，可能添加健康脂肪来源
+        if (random.nextBoolean() && mealFat.compareTo(BigDecimal.valueOf(10)) > 0) {
+            List<FoodNutrition> fatSources = availableFoods.stream()
+                    .filter(food -> food.getFatPer100g().compareTo(BigDecimal.valueOf(15)) > 0 &&
+                            !food.getFoodCategory().contains("肉类")) // 排除肉类，主要选择植物性脂肪
+                    .collect(Collectors.toList());
+            
+            if (!CollectionUtils.isEmpty(fatSources)) {
+                FoodNutrition fatSource = fatSources.get(random.nextInt(fatSources.size()));
+                BigDecimal amount = BigDecimal.valueOf(10 + random.nextInt(20)); // 10-30g健康脂肪
+                mealItems.add(createMealItem(fatSource, amount, getRandomCookingMethod(cookingMethods)));
+            }
+        }
+        
         return mealItems;
+    }
+    
+    /**
+     * 生成餐次食物项目（考虑口味偏好）
+     */
+    private List<DietPlanVO.MealItem> generateMealItemsWithTastePreference(NutritionRequirement requirement, 
+                                                                         BigDecimal mealRatio,
+                                                                         List<String> dietaryPreferences,
+                                                                         List<String> forbiddenFoods,
+                                                                         List<String> cookingMethods,
+                                                                         String tastePreference) {
+        // 先生成基础餐次
+        List<DietPlanVO.MealItem> mealItems = generateMealItems(requirement, mealRatio, 
+                dietaryPreferences, forbiddenFoods, cookingMethods);
+        
+        // 根据口味偏好调整烹饪方法和调味料
+        if (StringUtils.hasText(tastePreference)) {
+            adjustMealItemsByTastePreference(mealItems, tastePreference);
+        }
+        
+        return mealItems;
+    }
+    
+    /**
+     * 生成餐次食物项目（考虑季节性）
+     */
+    private List<DietPlanVO.MealItem> generateMealItemsWithSeasonality(NutritionRequirement requirement, 
+                                                                      BigDecimal mealRatio,
+                                                                      List<String> dietaryPreferences,
+                                                                      List<String> forbiddenFoods,
+                                                                      List<String> cookingMethods,
+                                                                      Integer tastePreference,
+                                                                      LocalDate planDate) {
+        // 将Integer类型的tastePreference转换为String
+        String tastePreferenceStr = convertTastePreferenceToString(tastePreference);
+        
+        // 先生成基础餐次（考虑口味偏好）
+        List<DietPlanVO.MealItem> mealItems = StringUtils.hasText(tastePreferenceStr) ?
+                generateMealItemsWithTastePreference(requirement, mealRatio, 
+                        dietaryPreferences, forbiddenFoods, cookingMethods, tastePreferenceStr) :
+                generateMealItems(requirement, mealRatio, 
+                        dietaryPreferences, forbiddenFoods, cookingMethods);
+        
+        // 根据季节调整食物选择
+        adjustMealItemsBySeason(mealItems, planDate);
+        
+        return mealItems;
+    }
+    
+    /**
+     * 将Integer类型的口味偏好转换为String类型
+     */
+    private String convertTastePreferenceToString(Integer tastePreference) {
+        if (tastePreference == null) {
+            return null;
+        }
+        
+        switch (tastePreference) {
+            case 1:
+                return "清淡";
+            case 2:
+                return "适中";
+            case 3:
+                return "重口味";
+            default:
+                return "适中";
+        }
+    }
+    
+    /**
+     * 根据季节调整餐次项目
+     */
+    private void adjustMealItemsBySeason(List<DietPlanVO.MealItem> mealItems, LocalDate planDate) {
+        // 获取当前月份
+        int month = planDate.getMonthValue();
+        String season = getSeason(month);
+        
+        // 根据季节调整食物
+        for (DietPlanVO.MealItem item : mealItems) {
+            switch (season) {
+                case "春季":
+                    // 春季宜食清淡、疏肝理气食物
+                    if (item.getFoodName().contains("油腻") || item.getFoodName().contains("肥肉")) {
+                        // 替换为春季适宜食物
+                        item.setFoodName(item.getFoodName().replace("肥肉", "鸡胸肉"));
+                        item.setCookingMethod("清炒");
+                    }
+                    break;
+                case "夏季":
+                    // 夏季宜食清凉解暑食物
+                    if (item.getFoodName().contains("热性") || item.getFoodName().contains("辛辣")) {
+                        // 替换为夏季适宜食物
+                        item.setFoodName(item.getFoodName().replace("辛辣", "清淡"));
+                        item.setCookingMethod("凉拌");
+                    }
+                    // 夏季增加瓜类食物
+                    if (item.getFoodCategory() != null && item.getFoodCategory().contains("蔬菜") && 
+                        Math.random() > 0.7) { // 30%概率替换为瓜类
+                        item.setFoodName("黄瓜");
+                        item.setCookingMethod("凉拌");
+                    }
+                    break;
+                case "秋季":
+                    // 秋季宜食润燥食物
+                    if (item.getFoodName().contains("寒凉") || item.getFoodName().contains("生冷")) {
+                        // 替换为秋季适宜食物
+                        item.setFoodName(item.getFoodName().replace("寒凉", "温润"));
+                        item.setCookingMethod("炖煮");
+                    }
+                    // 秋季增加梨、银耳等润燥食物
+                    if (item.getFoodCategory() != null && item.getFoodCategory().contains("水果") && 
+                        Math.random() > 0.7) { // 30%概率替换为润燥水果
+                        item.setFoodName("梨");
+                    }
+                    break;
+                case "冬季":
+                    // 冬季宜食温补食物
+                    if (item.getFoodName().contains("寒凉") || item.getFoodName().contains("生冷")) {
+                        // 替换为冬季适宜食物
+                        item.setFoodName(item.getFoodName().replace("寒凉", "温补"));
+                        item.setCookingMethod("红烧");
+                    }
+                    // 冬季增加根茎类食物
+                    if (item.getFoodCategory() != null && item.getFoodCategory().contains("蔬菜") && 
+                        Math.random() > 0.7) { // 30%概率替换为根茎类蔬菜
+                        item.setFoodName("萝卜");
+                        item.setCookingMethod("炖煮");
+                    }
+                    break;
+            }
+        }
+    }
+    
+    /**
+     * 根据月份获取季节
+     */
+    private String getSeason(int month) {
+        if (month >= 3 && month <= 5) {
+            return "春季";
+        } else if (month >= 6 && month <= 8) {
+            return "夏季";
+        } else if (month >= 9 && month <= 11) {
+            return "秋季";
+        } else {
+            return "冬季";
+        }
+    }
+    
+    /**
+     * 根据口味偏好调整餐次项目
+     */
+    private void adjustMealItemsByTastePreference(List<DietPlanVO.MealItem> mealItems, String tastePreference) {
+        for (DietPlanVO.MealItem item : mealItems) {
+            switch (tastePreference) {
+                case "清淡":
+                    // 清淡口味：减少油盐，多蒸煮
+                    if (item.getCookingMethod().contains("炒") || item.getCookingMethod().contains("炸")) {
+                        item.setCookingMethod(item.getCookingMethod().replace("炒", "蒸")
+                                .replace("炸", "煮"));
+                    }
+                    break;
+                case "适中":
+                    // 适中口味：保持原有烹饪方法，不做调整
+                    break;
+                case "重口味":
+                    // 重口味：增加调味，适合红烧、香煎等烹饪方法
+                    if (item.getCookingMethod().contains("蒸") || item.getCookingMethod().contains("煮")) {
+                        item.setCookingMethod(item.getCookingMethod().replace("蒸", "红烧")
+                                .replace("煮", "香煎"));
+                    } else if (!item.getCookingMethod().contains("红烧") && !item.getCookingMethod().contains("香煎")) {
+                        item.setCookingMethod(item.getCookingMethod() + "（重口味）");
+                    }
+                    break;
+                case "偏咸":
+                    // 偏咸口味：适合腌制、酱烧等烹饪方法
+                    if (item.getCookingMethod().contains("蒸") || item.getCookingMethod().contains("煮")) {
+                        item.setCookingMethod(item.getCookingMethod().replace("蒸", "酱烧")
+                                .replace("煮", "红烧"));
+                    }
+                    break;
+                case "偏辣":
+                    // 偏辣口味：适合辣炒、麻辣等烹饪方法
+                    item.setCookingMethod(item.getCookingMethod() + "（微辣）");
+                    break;
+                case "偏甜":
+                    // 偏甜口味：适合糖醋、红烧等烹饪方法
+                    if (item.getCookingMethod().contains("炒") || item.getCookingMethod().contains("煮")) {
+                        item.setCookingMethod(item.getCookingMethod().replace("炒", "糖醋")
+                                .replace("煮", "蜜汁"));
+                    }
+                    break;
+                default:
+                    // 默认口味，不做调整
+                    break;
+            }
+        }
+    }
+    
+    /**
+     * 根据饮食偏好过滤食物
+     */
+    private List<FoodNutrition> filterFoodsByDietaryPreferences(List<FoodNutrition> foods, List<String> preferences) {
+        List<FoodNutrition> filteredFoods = new ArrayList<>(foods);
+        
+        for (String preference : preferences) {
+            switch (preference) {
+                case "素食":
+                    // 过滤掉肉类和鱼类
+                    filteredFoods = filteredFoods.stream()
+                            .filter(food -> food.getFoodCategory() == null || 
+                                    (!food.getFoodCategory().contains("肉类") && 
+                                     !food.getFoodCategory().contains("鱼类") &&
+                                     !food.getFoodCategory().contains("海鲜")))
+                            .collect(Collectors.toList());
+                    break;
+                case "无乳糖":
+                    // 过滤掉乳制品
+                    filteredFoods = filteredFoods.stream()
+                            .filter(food -> food.getFoodCategory() == null || 
+                                    !food.getFoodCategory().contains("乳制品"))
+                            .collect(Collectors.toList());
+                    break;
+                case "低盐":
+                    // 过滤掉高盐食物
+                    filteredFoods = filteredFoods.stream()
+                            .filter(food -> food.getFoodName() == null || 
+                                    (!food.getFoodName().contains("咸") && 
+                                     !food.getFoodName().contains("酱") &&
+                                     !food.getFoodName().contains("腊")))
+                            .collect(Collectors.toList());
+                    break;
+                // 可以添加更多饮食偏好的处理逻辑
+            }
+        }
+        
+        return filteredFoods;
+    }
+    
+    /**
+     * 获取随机碳水化合物比例
+     */
+    private BigDecimal getRandomCarbRatio(BigDecimal mealRatio, Random random) {
+        // 早餐和晚餐碳水化合物比例较高，午餐适中
+        if (mealRatio.compareTo(BigDecimal.valueOf(0.25)) == 0) { // 早餐
+            return BigDecimal.valueOf(0.6 + random.nextDouble() * 0.2); // 0.6-0.8
+        } else if (mealRatio.compareTo(BigDecimal.valueOf(0.35)) == 0) { // 午餐
+            return BigDecimal.valueOf(0.5 + random.nextDouble() * 0.2); // 0.5-0.7
+        } else { // 晚餐或加餐
+            return BigDecimal.valueOf(0.4 + random.nextDouble() * 0.2); // 0.4-0.6
+        }
+    }
+    
+    /**
+     * 获取随机蛋白质比例
+     */
+    private BigDecimal getRandomProteinRatio(BigDecimal mealRatio, Random random) {
+        // 午餐蛋白质比例较高，早餐和晚餐适中
+        if (mealRatio.compareTo(BigDecimal.valueOf(0.35)) == 0) { // 午餐
+            return BigDecimal.valueOf(0.7 + random.nextDouble() * 0.2); // 0.7-0.9
+        } else { // 早餐、晚餐或加餐
+            return BigDecimal.valueOf(0.6 + random.nextDouble() * 0.2); // 0.6-0.8
+        }
     }
 
     /**
