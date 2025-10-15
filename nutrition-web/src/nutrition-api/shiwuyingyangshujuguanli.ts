@@ -62,6 +62,21 @@ export async function listFoodNutritionByPageGetUsingGet1(
   })
 }
 
+/** 根据食物名称模糊查询 GET /api/food-nutrition/search */
+export async function searchFoodByNameUsingGet1(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.searchFoodByNameUsingGET1Params,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseListFoodNutritionVO_>('/api/food-nutrition/search', {
+    method: 'GET',
+    params: {
+      ...params,
+    },
+    ...(options || {}),
+  })
+}
+
 /** 更新食物营养数据 需要管理员权限 POST /api/food-nutrition/update */
 export async function updateFoodNutritionUsingPost1(
   body: API.FoodNutritionUpdateRequest,

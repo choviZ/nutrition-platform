@@ -70,6 +70,12 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponseListFoodNutritionVO_ = {
+    code?: number
+    data?: FoodNutritionVO[]
+    message?: string
+  }
+
   type BaseResponseListMapStringObject_ = {
     code?: number
     data?: MapStringObject_[]
@@ -782,6 +788,11 @@ declare namespace API {
     phone?: string
     /** 用户名 */
     username: string
+  }
+
+  type searchFoodByNameUsingGET1Params = {
+    /** foodName */
+    foodName: string
   }
 
   type UserAddRequest = {

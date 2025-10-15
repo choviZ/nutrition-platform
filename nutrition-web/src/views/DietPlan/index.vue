@@ -57,8 +57,8 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="用户ID" prop="userId">
-              <el-input-number 
-                v-model="dietPlanForm.userId" 
+              <el-input 
+                v-model="displayUserId" 
                 placeholder="用户ID" 
                 style="width: 100%"
                 disabled
@@ -312,6 +312,7 @@ const dietPlanForm = reactive<API.DietPlanGenerateRequest>({
 
 // 用于显示的ID（字符串类型，避免大整数精度丢失）
 const displayRequirementId = ref('')
+const displayUserId = ref('')
 
 // 饮食方案结果
 const dietPlanResult = ref<API.DietPlanVO>()
@@ -367,10 +368,11 @@ const handleSubmit = async () => {
     await dietPlanFormRef.value.validate()
     submitLoading.value = true
     
-    // 创建请求数据，将requirementId作为字符串处理
+    // 创建请求数据，将requirementId和userId作为字符串处理
     const requestData = {
       ...dietPlanForm,
-      requirementId: displayRequirementId.value || dietPlanForm.requirementId.toString()
+      requirementId: displayRequirementId.value || dietPlanForm.requirementId.toString(),
+      userId: displayUserId.value || dietPlanForm.userId.toString()
     }
     
     console.log('请求数据:', requestData)
@@ -382,9 +384,12 @@ const handleSubmit = async () => {
       },
       // 自定义请求转换器，确保大整数ID作为字符串传递
       transformRequest: [(data) => {
-        // 将requirementId转换为字符串
+        // 将requirementId和userId转换为字符串
         if (data && data.requirementId) {
           data.requirementId = data.requirementId.toString()
+        }
+        if (data && data.userId) {
+          data.userId = data.userId.toString()
         }
         return JSON.stringify(data)
       }]
@@ -502,19 +507,50 @@ const confirmDietPlan = async () => {
 
 // 初始化表单数据
 onMounted(() => {
-  // 从localStorage获取用户信息
-  const userInfo = localStorage.getItem('userInfo')
-  if (userInfo) {
-    try {
-      const parsedUserInfo = JSON.parse(userInfo)
-      dietPlanForm.userId = parsedUserInfo.userId || 0
-    } catch (error) {
-      console.error('解析用户信息失败:', error)
-      ElMessage.error('获取用户信息失败')
-    }
+  // 优先从URL参数获取用户ID，如果没有则从localStorage获取
+  let userId = null
+  if (route.query.userId) {
+    userId = route.query.userId
   } else {
-    ElMessage.error('请先登录')
-    router.push('/login')
+    // 从localStorage获取用户信息
+    const userInfo = localStorage.getItem('userInfo')
+    if (userInfo) {
+      try {
+        const parsedUserInfo = JSON.parse(userInfo)
+        userId = parsedUserInfo.userId || 0
+      } catch (error) {
+        console.error('解析用户信息失败:', error)
+        ElMessage.error('获取用户信息失败')
+      }
+    } else {
+      ElMessage.error('请先登录')
+      router.push('/login')
+      return
+    }
+  }
+  
+  // 设置用户ID
+  if (userId) {
+    // 设置显示用的用户ID（字符串形式）
+    displayUserId.value = userId.toString()
+    // 设置表单中的用户ID（数字形式，用于API调用）
+    try {
+      // 如果是大整数，使用BigInt处理
+      if (typeof userId === 'string' && userId.length > 15) {
+        const bigIntId = BigInt(userId)
+        if (bigIntId > BigInt(Number.MAX_SAFE_INTEGER)) {
+          console.warn('用户ID超出JavaScript安全整数范围，使用近似值')
+          dietPlanForm.userId = Number.MAX_SAFE_INTEGER
+        } else {
+          dietPlanForm.userId = Number(bigIntId)
+        }
+      } else {
+        dietPlanForm.userId = Number(userId)
+      }
+    } catch (error) {
+      console.error('转换用户ID失败:', error)
+      dietPlanForm.userId = Number.MAX_SAFE_INTEGER
+    }
   }
   
   // 如果从营养评估页面跳转过来，获取营养需求ID

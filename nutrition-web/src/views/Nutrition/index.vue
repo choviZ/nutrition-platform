@@ -73,7 +73,14 @@
         :rules="formRules"
       >
         <el-form-item label="食物名称" prop="foodName">
-          <el-input v-model="formData.foodName" />
+          <el-autocomplete
+            v-model="formData.foodName"
+            :fetch-suggestions="queryFoodSuggestions"
+            placeholder="请输入食物名称"
+            @select="handleFoodSelect"
+            @input="handleFoodInput"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="数量(g)" prop="foodAmount">
           <el-input-number
@@ -113,6 +120,7 @@ import {
   addDietRecordUsingPost1, deleteDietRecordUsingDelete1,
   queryDietRecordsGetUsingGet1 as getDietRecords, updateDietRecordUsingPost1
 } from '@/nutrition-api/yinshijiluguanli'
+import { searchFoodByNameUsingGet1 } from '@/nutrition-api/shiwuyingyangshujuguanli'
 
 interface DietRecord {
   id: string
@@ -131,6 +139,7 @@ const searchKey = ref('')
 // 对话框相关
 const dialogVisible = ref(false)
 const isEditMode = ref(false)
+const selectedFood = ref<any>(null) // 存储用户选择的食物对象
 const formData = ref<Partial<DietRecord>>({
   foodName: '',
   foodAmount: 100,
@@ -140,7 +149,24 @@ const formData = ref<Partial<DietRecord>>({
 
 // 表单验证规则
 const formRules = {
-  foodName: [{ required: true, message: '请输入食物名称', trigger: 'blur' }],
+  foodName: [
+    { required: true, message: '请输入食物名称', trigger: 'blur' },
+    { 
+      validator: (rule: any, value: string, callback: Function) => {
+        if (!value) {
+          callback(new Error('请输入食物名称'))
+          return
+        }
+        // 检查是否选择了有效的食物
+        if (!selectedFood.value || selectedFood.value.foodName !== value) {
+          callback(new Error('请从下拉列表中选择有效的食物'))
+          return
+        }
+        callback()
+      }, 
+      trigger: 'blur' 
+    }
+  ],
   foodAmount: [{ required: true, message: '请输入数量', trigger: 'blur' }],
   createTime: [{ required: true, message: '请选择时间', trigger: 'change' }],
   mealType: [{ required: true, message: '请选择餐次', trigger: 'change' }]
@@ -172,6 +198,7 @@ const loadData = async () => {
 // 新增记录
 const handleAdd = () => {
   isEditMode.value = false
+  selectedFood.value = null // 重置选择的食物
   formData.value = {
     foodName: '',
     foodAmount: 100,
@@ -184,6 +211,7 @@ const handleAdd = () => {
 // 编辑记录
 const handleEdit = (row: DietRecord) => {
   isEditMode.value = true
+  selectedFood.value = null // 重置选择的食物
   formData.value = { ...row }
   dialogVisible.value = true
 }
@@ -244,6 +272,45 @@ const getMealTypeName = (mealType: number) => {
     case 4: return '加餐'
     default: return '未知'
   }
+}
+
+// 查询食物建议
+const queryFoodSuggestions = async (queryString: string, cb: (arg: any[]) => void) => {
+  if (!queryString || queryString.length < 1) {
+    cb([])
+    return
+  }
+  
+  try {
+    const response = await searchFoodByNameUsingGet1({ foodName: queryString })
+    if (response.data && response.data.code === 200 && response.data.data) {
+      // 将API返回的数据转换为自动完成组件需要的格式
+      const suggestions = response.data.data.map(item => ({
+        value: item.foodName,
+        item: item
+      }))
+      cb(suggestions)
+    } else {
+      cb([])
+    }
+  } catch (error) {
+    console.error('查询食物失败:', error)
+    cb([])
+  }
+}
+
+// 处理食物选择
+const handleFoodSelect = (item: any) => {
+  // 当用户选择一个食物时，将食物名称设置到表单中
+  formData.value.foodName = item.value
+  // 保存选择的食物对象
+  selectedFood.value = item.item
+}
+
+// 处理食物输入
+const handleFoodInput = () => {
+  // 当用户手动输入时，清除选择的食物对象
+  selectedFood.value = null
 }
 </script>
 

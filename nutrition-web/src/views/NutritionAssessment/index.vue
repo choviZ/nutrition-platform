@@ -280,10 +280,30 @@ const handleSubmit = async () => {
 const fetchAssessmentRecords = async () => {
   recordsLoading.value = true
   try {
-    const response = await queryNutritionRequirementsUsingPost1({
+    // 从localStorage获取用户信息
+    const userInfoStr = localStorage.getItem('userInfo')
+    let userId = null
+    if (userInfoStr) {
+      try {
+        const parsed = JSON.parse(userInfoStr)
+        userId = parsed.userId
+      } catch (e) {
+        console.error('解析用户信息失败:', e)
+      }
+    }
+    
+    // 构建查询参数，添加用户ID以只查询当前用户的记录
+    const queryParams: API.NutritionQueryRequest = {
       current: currentPage.value,
       pageSize: pageSize.value
-    })
+    }
+    
+    // 如果有用户ID，添加到查询参数中
+    if (userId) {
+      queryParams.userId = userId
+    }
+    
+    const response = await queryNutritionRequirementsUsingPost1(queryParams)
     if (response.data.code === 200) {
       // 根据API类型定义，response.data.data直接就是NutritionAssessmentResponse[]
       assessmentRecords.value = response.data.data || []
@@ -358,11 +378,24 @@ const createDietPlan = (record: API.NutritionAssessmentResponse) => {
     return
   }
 
-  // 跳转到饮食方案页面，并传递营养需求ID
+  // 从localStorage获取用户ID
+  const userInfo = localStorage.getItem('userInfo')
+  let userId = null
+  if (userInfo) {
+    try {
+      const parsedUserInfo = JSON.parse(userInfo)
+      userId = parsedUserInfo.userId
+    } catch (error) {
+      console.error('解析用户信息失败:', error)
+    }
+  }
+
+  // 跳转到饮食方案页面，并传递营养需求ID和用户ID
   router.push({
     path: '/diet-plan',
     query: {
-      requirementId: record.requirementId
+      requirementId: record.requirementId,
+      userId: userId || ''
     }
   })
 }
