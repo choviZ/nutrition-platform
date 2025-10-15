@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.validation.Valid;
+import java.util.List;
 
 /**
  * 食物营养数据接口
@@ -117,5 +118,29 @@ public class FoodNutritionController {
         }
         Page<FoodNutritionVO> foodNutritionVOPage = foodNutritionService.listFoodNutritionByPage(foodNutritionQueryRequest);
         return ResultUtils.success(foodNutritionVOPage);
+    }
+
+    /**
+     * 根据食物名称模糊查询
+     *
+     * @param foodName 食物名称关键词
+     * @return 匹配的食物列表
+     */
+    @GetMapping("/search")
+    @ApiOperation(value = "根据食物名称模糊查询")
+    public BaseResponse<List<FoodNutritionVO>> searchFoodByName(@RequestParam("foodName") String foodName) {
+        if (foodName == null || foodName.trim().isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "食物名称不能为空");
+        }
+        
+        // 创建查询请求
+        FoodNutritionQueryRequest queryRequest = new FoodNutritionQueryRequest();
+        queryRequest.setFoodName(foodName.trim());
+        queryRequest.setPageSize(20); // 限制返回数量，避免返回过多数据
+        
+        // 查询数据
+        Page<FoodNutritionVO> resultPage = foodNutritionService.listFoodNutritionByPage(queryRequest);
+        
+        return ResultUtils.success(resultPage.getRecords());
     }
 }

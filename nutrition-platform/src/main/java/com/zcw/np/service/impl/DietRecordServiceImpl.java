@@ -99,6 +99,76 @@ public class DietRecordServiceImpl extends ServiceImpl<DietRecordMapper, DietRec
         dietRecord.setUserId(userId);
         dietRecord.setUpdateTime(LocalDateTime.now());
 
+        // 如果食物名称或分量发生变化，需要重新计算营养成分
+        boolean needRecalculate = false;
+        String foodName = dietRecordUpdateRequest.getFoodName();
+        BigDecimal foodAmount = dietRecordUpdateRequest.getFoodAmount();
+        
+        // 使用原始记录中的值作为默认值
+        if (foodName == null) {
+            foodName = existingRecord.getFoodName();
+            dietRecord.setFoodName(foodName);
+        }
+        if (foodAmount == null) {
+            foodAmount = existingRecord.getFoodAmount();
+            dietRecord.setFoodAmount(foodAmount);
+        }
+        
+        // 检查食物名称或分量是否发生变化
+        if (!foodName.equals(existingRecord.getFoodName()) || 
+            foodAmount.compareTo(existingRecord.getFoodAmount()) != 0) {
+            needRecalculate = true;
+        }
+        
+        // 如果需要重新计算营养成分
+        if (needRecalculate) {
+            // 根据食物名称查询食物营养数据
+            QueryWrapper<FoodNutrition> foodQueryWrapper = new QueryWrapper<>();
+            foodQueryWrapper.eq("food_name", foodName);
+            FoodNutrition foodNutrition = foodNutritionMapper.selectOne(foodQueryWrapper);
+            ThrowUtils.throwIf(foodNutrition == null, ErrorCode.NOT_FOUND_ERROR, "食物不存在，请先添加该食物的营养数据");
+            
+            // 计算营养成分
+            // 计算比例：食物分量 / 100g
+            BigDecimal ratio = foodAmount.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+            // 计算实际营养成分
+            BigDecimal calories = foodNutrition.getCaloriesPer100g().multiply(ratio).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal protein = foodNutrition.getProteinPer100g().multiply(ratio).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal carbohydrate = foodNutrition.getCarbohydratePer100g().multiply(ratio).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal fat = foodNutrition.getFatPer100g().multiply(ratio).setScale(2, RoundingMode.HALF_UP);
+            
+            // 更新营养成分
+            dietRecord.setCalories(calories);
+            dietRecord.setProtein(protein);
+            dietRecord.setCarbohydrate(carbohydrate);
+            dietRecord.setFat(fat);
+        } else {
+            // 如果食物名称和分量都没有变化，但用户可能直接修改了营养成分值，需要保留这些值
+            if (dietRecordUpdateRequest.getCalories() != null) {
+                dietRecord.setCalories(dietRecordUpdateRequest.getCalories());
+            } else {
+                dietRecord.setCalories(existingRecord.getCalories());
+            }
+            
+            if (dietRecordUpdateRequest.getProtein() != null) {
+                dietRecord.setProtein(dietRecordUpdateRequest.getProtein());
+            } else {
+                dietRecord.setProtein(existingRecord.getProtein());
+            }
+            
+            if (dietRecordUpdateRequest.getCarbohydrate() != null) {
+                dietRecord.setCarbohydrate(dietRecordUpdateRequest.getCarbohydrate());
+            } else {
+                dietRecord.setCarbohydrate(existingRecord.getCarbohydrate());
+            }
+            
+            if (dietRecordUpdateRequest.getFat() != null) {
+                dietRecord.setFat(dietRecordUpdateRequest.getFat());
+            } else {
+                dietRecord.setFat(existingRecord.getFat());
+            }
+        }
+
         boolean result = this.updateById(dietRecord);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "更新饮食记录失败");
 
