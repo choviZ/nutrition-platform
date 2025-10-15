@@ -15,6 +15,16 @@ const router = createRouter({
         requiresAuth: false
       }
     },
+    // 注册页面
+    {
+      path: '/register',
+      name: 'Register',
+      component: () => import('@/views/Register/index.vue'),
+      meta: {
+        title: '注册',
+        requiresAuth: false
+      }
+    },
     // 主应用布局
     {
       path: '/',
@@ -43,29 +53,11 @@ const router = createRouter({
           }
         },
         {
-          path: '/food',
-          name: 'Food',
-          component: () => import('@/views/Food/index.vue'),
-          meta: {
-            title: '食物库',
-            requiresAuth: true
-          }
-        },
-        {
           path: '/assessment',
           name: 'Assessment',
           component: () => import('@/views/NutritionAssessment/index.vue'),
           meta: {
             title: '营养评估',
-            requiresAuth: true
-          }
-        },
-        {
-          path: '/analysis',
-          name: 'Analysis',
-          component: () => import('@/views/Analysis/index.vue'),
-          meta: {
-            title: '数据分析',
             requiresAuth: true
           }
         },
@@ -84,7 +76,8 @@ const router = createRouter({
           component: () => import('@/views/UserManagement/index.vue'),
           meta: {
             title: '用户管理',
-            requiresAuth: true
+            requiresAuth: true,
+            requiresAdmin: true
           }
         },
         {
@@ -93,7 +86,8 @@ const router = createRouter({
           component: () => import('@/views/FoodManagement/index.vue'),
           meta: {
             title: '食物管理',
-            requiresAuth: true
+            requiresAuth: true,
+            requiresAdmin: true
           }
         },
         {
@@ -135,6 +129,21 @@ const isAuthenticated = (): boolean => {
   return !!token
 }
 
+// 检查用户是否为管理员
+const isAdmin = (): boolean => {
+  const userInfo = localStorage.getItem('userInfo')
+  if (userInfo) {
+    try {
+      const parsed = JSON.parse(userInfo)
+      return parsed.userRole === 'admin' || parsed.userRole === 'ADMIN'
+    } catch (error) {
+      console.error('解析用户信息失败:', error)
+      return false
+    }
+  }
+  return false
+}
+
 // 路由守卫
 router.beforeEach((to, from, next) => {
   // 设置页面标题
@@ -146,6 +155,7 @@ router.beforeEach((to, from, next) => {
 
   // 检查路由是否需要认证
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin)
 
   if (requiresAuth && !isAuthenticated()) {
     // 需要认证但未登录，跳转到登录页
@@ -153,6 +163,10 @@ router.beforeEach((to, from, next) => {
     next('/login')
   } else if (to.path === '/login' && isAuthenticated()) {
     // 已登录用户访问登录页，跳转到首页
+    next('/')
+  } else if (requiresAdmin && !isAdmin()) {
+    // 需要管理员权限但用户不是管理员，显示错误信息并跳转到首页
+    ElMessage.error('您没有权限访问此页面')
     next('/')
   } else {
     // 正常访问

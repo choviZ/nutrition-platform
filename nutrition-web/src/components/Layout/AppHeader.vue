@@ -31,21 +31,17 @@
           <el-icon><DataAnalysis /></el-icon>
           <span>营养评估</span>
         </el-menu-item>
-        <el-menu-item index="/profile">
-          <el-icon><Setting /></el-icon>
-          <span>个人设置</span>
-        </el-menu-item>
-        <el-menu-item index="/user-management">
-          <el-icon><UserFilled /></el-icon>
-          <span>用户管理</span>
-        </el-menu-item>
-        <el-menu-item index="/food-management">
-          <el-icon><Food /></el-icon>
-          <span>食物管理</span>
-        </el-menu-item>
         <el-menu-item index="/diet-plan-records">
           <el-icon><Food /></el-icon>
           <span>饮食方案记录</span>
+        </el-menu-item>
+        <el-menu-item v-if="isAdmin" index="/user-management">
+          <el-icon><UserFilled /></el-icon>
+          <span>用户管理</span>
+        </el-menu-item>
+        <el-menu-item v-if="isAdmin" index="/food-management">
+          <el-icon><Food /></el-icon>
+          <span>食物管理</span>
         </el-menu-item>
       </el-menu>
     </div>
@@ -68,11 +64,7 @@
           <el-dropdown-menu>
             <el-dropdown-item command="profile">
               <el-icon><User /></el-icon>
-              个人资料
-            </el-dropdown-item>
-            <el-dropdown-item command="settings">
-              <el-icon><Setting /></el-icon>
-              账户设置
+              个人设置
             </el-dropdown-item>
             <el-dropdown-item divided command="logout">
               <el-icon><SwitchButton /></el-icon>
@@ -100,7 +92,13 @@ const activeIndex = computed(() => route.path)
 const userInfo = ref({
   nickname: '用户',
   avatar: '', // 空字符串会显示默认头像
-  email: ''
+  email: '',
+  userRole: '' // 用户角色
+})
+
+// 判断是否为管理员
+const isAdmin = computed(() => {
+  return userInfo.value.userRole === 'admin' || userInfo.value.userRole === 'ADMIN'
 })
 
 // 初始化用户信息
@@ -112,7 +110,8 @@ const initUserInfo = () => {
       userInfo.value = {
         nickname: parsed.username || '用户',
         avatar: '',
-        email: parsed.email || ''
+        email: parsed.email || '',
+        userRole: parsed.userRole || ''
       }
     } catch (error) {
       console.error('解析用户信息失败:', error)

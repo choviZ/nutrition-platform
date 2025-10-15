@@ -57,6 +57,10 @@
           <el-icon><InfoFilled /></el-icon>
           演示账号：admin / 123456
         </p>
+        <p class="register-link">
+          没有账号？
+          <router-link to="/register" class="link">立即注册</router-link>
+        </p>
       </div>
     </div>
   </div>
@@ -129,7 +133,6 @@ const handleLogin = async () => {
     }
   } catch (error: any) {
     console.error('登录失败:', error)
-    ElMessage.error(error.message || '登录失败，请检查用户名和密码')
   } finally {
     loading.value = false
   }
@@ -224,6 +227,22 @@ const handleLogin = async () => {
 .demo-account .el-icon {
   margin-right: 6px;
   color: #409eff;
+}
+
+.register-link {
+  color: #606266;
+  font-size: 14px;
+  margin: 16px 0 0;
+}
+
+.link {
+  color: #409eff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.link:hover {
+  text-decoration: underline;
 }
 
 /* 响应式设计 */
