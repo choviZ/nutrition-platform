@@ -31,14 +31,6 @@
           <el-icon><DataAnalysis /></el-icon>
           <span>营养评估</span>
         </el-menu-item>
-        <el-menu-item index="/food">
-          <el-icon><Food /></el-icon>
-          <span>食物库</span>
-        </el-menu-item>
-        <el-menu-item index="/analysis">
-          <el-icon><TrendCharts /></el-icon>
-          <span>数据分析</span>
-        </el-menu-item>
         <el-menu-item index="/profile">
           <el-icon><Setting /></el-icon>
           <span>个人设置</span>
