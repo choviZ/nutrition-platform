@@ -328,42 +328,35 @@ public class DietPlanServiceImpl extends ServiceImpl<DietPlanMapper, DietPlan> i
         BigDecimal mealProtein = requirement.getProtein().multiply(mealRatio);
         BigDecimal mealCarbohydrate = requirement.getCarbohydrate().multiply(mealRatio);
         BigDecimal mealFat = requirement.getFat().multiply(mealRatio);
-
         // 获取符合条件的食物
         QueryWrapper<FoodNutrition> queryWrapper = new QueryWrapper<>();
         if (!CollectionUtils.isEmpty(forbiddenFoods)) {
             queryWrapper.notIn("food_name", forbiddenFoods);
         }
-        
         List<FoodNutrition> availableFoods = foodNutritionService.list(queryWrapper);
         if (CollectionUtils.isEmpty(availableFoods)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "没有可用的食物数据");
         }
-
         // 简化的食物搭配算法：按营养密度选择食物
         List<DietPlanVO.MealItem> mealItems = new ArrayList<>();
-        
         // 选择主食（碳水化合物来源）
         FoodNutrition mainFood = selectFoodByNutrient(availableFoods, "carbohydrate");
         if (mainFood != null) {
             BigDecimal amount = calculateFoodAmount(mainFood, mealCarbohydrate.multiply(BigDecimal.valueOf(0.6)), "carbohydrate");
             mealItems.add(createMealItem(mainFood, amount, getRandomCookingMethod(cookingMethods)));
         }
-
         // 选择蛋白质来源
         FoodNutrition proteinFood = selectFoodByNutrient(availableFoods, "protein");
         if (proteinFood != null) {
             BigDecimal amount = calculateFoodAmount(proteinFood, mealProtein.multiply(BigDecimal.valueOf(0.8)), "protein");
             mealItems.add(createMealItem(proteinFood, amount, getRandomCookingMethod(cookingMethods)));
         }
-
         // 选择蔬菜（纤维和维生素来源）
         FoodNutrition vegetable = selectFoodByCategory(availableFoods, "蔬菜");
         if (vegetable != null) {
             BigDecimal amount = BigDecimal.valueOf(100); // 固定100g蔬菜
             mealItems.add(createMealItem(vegetable, amount, getRandomCookingMethod(cookingMethods)));
         }
-
         return mealItems;
     }
 
