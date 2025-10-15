@@ -33,7 +33,7 @@
         </el-menu-item>
         <el-menu-item index="/diet-plan-records">
           <el-icon><Food /></el-icon>
-          <span>饮食方案记录</span>
+          <span>我的饮食方案</span>
         </el-menu-item>
         <el-menu-item v-if="isAdmin" index="/user-management">
           <el-icon><UserFilled /></el-icon>
